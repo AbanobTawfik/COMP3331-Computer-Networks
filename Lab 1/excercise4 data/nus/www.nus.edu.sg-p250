@@ -1,0 +1,55 @@
+PING www.nus.edu.sg (137.132.21.27) 222(250) bytes of data.
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=1 ttl=47 time=144 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=2 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=3 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=4 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=5 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=6 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=7 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=8 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=9 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=10 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=11 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=12 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=13 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=14 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=15 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=16 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=17 ttl=47 time=147 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=18 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=19 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=20 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=21 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=22 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=23 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=24 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=25 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=26 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=27 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=28 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=29 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=30 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=31 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=32 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=33 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=34 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=35 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=36 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=37 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=38 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=39 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=40 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=41 ttl=47 time=143 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=42 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=43 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=44 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=45 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=46 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=47 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=48 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=49 ttl=47 time=142 ms
+230 bytes from ddu.nus.edu.sg (137.132.21.27): icmp_req=50 ttl=47 time=142 ms
+
+--- www.nus.edu.sg ping statistics ---
+50 packets transmitted, 50 received, 0% packet loss, time 49061ms
+rtt min/avg/max/mdev = 142.129/142.605/147.383/0.847 ms
