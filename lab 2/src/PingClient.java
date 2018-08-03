@@ -66,5 +66,6 @@ public class PingClient {
         //print the average minimum and maximum RTT
         System.out.println("Average RTT = " + (averageRTT / validRTT) + " ms" + ", Minimum RTT = "
                 + minimumRTT + " ms" + ", Maximum RTT = " + maximumRTT + " ms.");
+        port.close();
     }
 }
