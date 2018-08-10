@@ -53,6 +53,8 @@ public class WebServer {
                 continue;
             }
             //if there is no get request we can ignore and wait for next request
+            if(null == line)
+                continue;
             if (!line.contains("GET")) {
                 System.out.println("Only get requests thank you sir");
                 continue;
