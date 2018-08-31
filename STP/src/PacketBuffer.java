@@ -6,7 +6,9 @@ public class PacketBuffer {
 
     //method to read the first element value in buffer
     public int peek_sequence_number(){
-        return buffer.peek().getSequence_Number();
+        if(!buffer.isEmpty())
+            return buffer.peek().getSequence_Number();
+        return -1;
     }
 
     public void add(STPPacket p){
