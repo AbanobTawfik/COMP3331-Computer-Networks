@@ -51,5 +51,5 @@ PING www.uq.edu.au (130.102.131.123) 222(250) bytes of data.
 230 bytes from wsa-sni.soe.uq.edu.au (130.102.131.123): icmp_req=50 ttl=241 time=16.7 ms
 
 --- www.uq.edu.au ping statistics ---
-50 packets transmitted, 50 received, 0% packet loss, time 49082ms
+50 packets transmitted, 50 received, 0% STPPacket loss, time 49082ms
 rtt min/avg/max/mdev = 16.683/17.934/45.501/5.191 ms

@@ -5,7 +5,7 @@ import java.util.*;
 /*
  * Server to process ping requests over UDP.
  * The server sits in an infinite loop listening for incoming UDP packets.
- * When a packet comes in, the server simply sends the encapsulated data back to the client.
+ * When a STPPacket comes in, the server simply sends the encapsulated data back to the client.
  */
 
 public class PingServer
@@ -23,7 +23,7 @@ public class PingServer
         int port = Integer.parseInt(args[0]);
 
         // Create random number generator for use in simulating
-        // packet loss and network delay.
+        // STPPacket loss and network delay.
         Random random = new Random();
 
         // Create a datagram socket for receiving and sending UDP packets
@@ -32,16 +32,16 @@ public class PingServer
 
         // Processing loop.
         while (true) {
-            // Create a datagram packet to hold incomming UDP packet.
+            // Create a datagram STPPacket to hold incomming UDP STPPacket.
             DatagramPacket request = new DatagramPacket(new byte[1024], 1024);
 
-            // Block until the host receives a UDP packet.
+            // Block until the host receives a UDP STPPacket.
             socket.receive(request);
 
             // Print the recieved data.
             printData(request);
 
-            // Decide whether to reply, or simulate packet loss.
+            // Decide whether to reply, or simulate STPPacket loss.
             if (random.nextDouble() < LOSS_RATE) {
                 System.out.println("   Reply not sent.");
                 continue;
@@ -66,7 +66,7 @@ public class PingServer
      */
     private static void printData(DatagramPacket request) throws Exception
     {
-        // Obtain references to the packet's array of bytes.
+        // Obtain references to the STPPacket's array of bytes.
         byte[] buf = request.getData();
 
         // Wrap the bytes in a byte array input stream,

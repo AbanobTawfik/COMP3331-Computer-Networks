@@ -28,7 +28,7 @@ public class PingClient {
             long timeStampStart = time.getTime();
             //created the message for the ping
             String message = "PING " + i + " " + s + "\r\n";
-            //this is the packet used in the ping request containing the message.
+            //this is the STPPacket used in the ping request containing the message.
             DatagramPacket pingRequest = new DatagramPacket(message.getBytes(), message.length(), server, Integer.parseInt(args[1]));
             //now we want to send the ping request to the port
             port.send(pingRequest);

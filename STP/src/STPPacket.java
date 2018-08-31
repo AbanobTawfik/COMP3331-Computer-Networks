@@ -1,7 +1,7 @@
-public class packet{
+public class STPPacket {
     private int Sequence_Number;
 
-    public packet(int sequence_Number) {
+    public STPPacket(int sequence_Number) {
         Sequence_Number = sequence_Number;
     }
 
