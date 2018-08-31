@@ -1,7 +1,7 @@
-public class Packet{
+public class packet{
     private int Sequence_Number;
 
-    public Packet(int sequence_Number) {
+    public packet(int sequence_Number) {
         Sequence_Number = sequence_Number;
     }
 
