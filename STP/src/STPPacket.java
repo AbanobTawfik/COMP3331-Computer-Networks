@@ -1,11 +1,17 @@
 public class STPPacket {
-    private int Sequence_Number;
+    private STPPacketHeader header;
+    private byte[] payload;
 
-    public STPPacket(int sequence_Number) {
-        Sequence_Number = sequence_Number;
+    public STPPacket(STPPacketHeader header, byte[] payload) {
+        this.header = header;
+        this.payload = payload;
     }
 
-    public int getSequence_Number() {
-        return Sequence_Number;
+    public STPPacketHeader getHeader() {
+        return header;
+    }
+
+    public byte[] getPayload() {
+        return payload;
     }
 }
