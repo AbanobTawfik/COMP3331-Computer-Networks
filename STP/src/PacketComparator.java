@@ -6,9 +6,9 @@ public class PacketComparator implements Comparator<STPPacket> {
     // for descending order of cgpa
     @Override
     public int compare(STPPacket p1, STPPacket p2) {
-        if ( p1.getHeader().getSequenceNumber() < p2.getHeader().getSequenceNumber())
+        if ( HeaderValues.b.put(p1.getHeader().getSequenceNumber()).getInt() < HeaderValues.b.put(p2.getHeader().getSequenceNumber()).getInt())
             return 1;
-        else if (p1.getHeader().getSequenceNumber() > p2.getHeader().getSequenceNumber())
+        else if (HeaderValues.b.put(p1.getHeader().getSequenceNumber()).getInt() > HeaderValues.b.put(p2.getHeader().getSequenceNumber()).getInt())
             return -1;
         return 0;
     }

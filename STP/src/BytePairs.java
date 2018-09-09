@@ -5,19 +5,19 @@ import java.net.InetAddress;
 import java.util.List;
 
 public class BytePairs {
-    private Pair<Byte,Integer> checksum;
-    private Pair<Byte,Integer> sequenceNumber;
-    private Pair<Byte,Integer> acknowledgemntNumber;
+    private Pair<List<Byte>,Integer> checksum;
+    private Pair<List<Byte>,Integer> sequenceNumber;
+    private Pair<List<Byte>,Integer> acknowledgemntNumber;
     private Pair<List<Byte>,InetAddress> sourceIP;
     private Pair<List<Byte>,InetAddress> destIP;
-    private Pair<Byte,Integer> sourcePort;
-    private Pair<Byte,Integer> destPort;
-    private Pair<List<Byte>,Boolean> SYN;
-    private Pair<List<Byte>,Boolean> ACK;
-    private Pair<List<Byte>,Boolean> FIN;
-    private Pair<List<Byte>,Boolean> URG;
+    private Pair<List<Byte>,Integer> sourcePort;
+    private Pair<List<Byte>,Integer> destPort;
+    private Pair<Byte,Boolean> SYN;
+    private Pair<Byte,Boolean> ACK;
+    private Pair<Byte,Boolean> FIN;
+    private Pair<Byte,Boolean> URG;
 
-    public BytePairs(Pair<Byte, Integer> checksum, Pair<Byte, Integer> sequenceNumber, Pair<Byte, Integer> acknowledgemntNumber, Pair<List<Byte>, InetAddress> sourceIP, Pair<List<Byte>, InetAddress> destIP, Pair<Byte, Integer> sourcePort, Pair<Byte, Integer> destPort, Pair<List<Byte>, Boolean> SYN, Pair<List<Byte>, Boolean> ACK, Pair<List<Byte>, Boolean> FIN, Pair<List<Byte>, Boolean> URG) {
+    public BytePairs(Pair<List<Byte>, Integer> checksum, Pair<List<Byte>, Integer> sequenceNumber, Pair<List<Byte>, Integer> acknowledgemntNumber, Pair<List<Byte>, InetAddress> sourceIP, Pair<List<Byte>, InetAddress> destIP, Pair<List<Byte>, Integer> sourcePort, Pair<List<Byte>, Integer> destPort, Pair<Byte, Boolean> SYN, Pair<Byte, Boolean> ACK, Pair<Byte, Boolean> FIN, Pair<Byte, Boolean> URG) {
         this.checksum = checksum;
         this.sequenceNumber = sequenceNumber;
         this.acknowledgemntNumber = acknowledgemntNumber;
@@ -45,49 +45,5 @@ public class BytePairs {
         System.out.println("10. " + FIN.getValue() + "<=>" + FIN.getKey());
         System.out.println("11. " + URG.getValue() + "<=>" + URG.getKey());
         System.out.println("=========================================================");
-    }
-
-    public Pair<Byte, Integer> getChecksum() {
-        return checksum;
-    }
-
-    public Pair<Byte, Integer> getSequenceNumber() {
-        return sequenceNumber;
-    }
-
-    public Pair<Byte, Integer> getAcknowledgemntNumber() {
-        return acknowledgemntNumber;
-    }
-
-    public Pair<List<Byte>, InetAddress> getSourceIP() {
-        return sourceIP;
-    }
-
-    public Pair<List<Byte>, InetAddress> getDestIP() {
-        return destIP;
-    }
-
-    public Pair<Byte, Integer> getSourcePort() {
-        return sourcePort;
-    }
-
-    public Pair<Byte, Integer> getDestPort() {
-        return destPort;
-    }
-
-    public Pair<List<Byte>, Boolean> getSYN() {
-        return SYN;
-    }
-
-    public Pair<List<Byte>, Boolean> getACK() {
-        return ACK;
-    }
-
-    public Pair<List<Byte>, Boolean> getFIN() {
-        return FIN;
-    }
-
-    public Pair<List<Byte>, Boolean> getURG() {
-        return URG;
     }
 }

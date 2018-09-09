@@ -36,7 +36,7 @@ public class STPReceiver {
     }
 
     public void handshake() {
-        STPPacketHeader header = new STPPacketHeader(127,2,3,
+        STPPacketHeader header = new STPPacketHeader(127000,2,3,
                 this.IP,this.IP,1,2,true,true,true,false);
         byte[] payload = new byte[10];
         STPPacket packet = new STPPacket(header,payload);

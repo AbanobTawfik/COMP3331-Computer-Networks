@@ -14,7 +14,7 @@ public class PacketBuffer {
     //method to read the first element value in buffer
     public int peek_sequence_number(){
         if(!buffer.isEmpty())
-            return buffer.peek().getHeader().getSequenceNumber();
+            return HeaderValues.b.put(buffer.peek().getHeader().getSequenceNumber()).getInt();
         return -1;
     }
 
