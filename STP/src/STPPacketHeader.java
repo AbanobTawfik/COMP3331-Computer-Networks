@@ -1,3 +1,4 @@
+import com.sun.xml.internal.ws.server.sei.MessageFiller;
 import javafx.util.Pair;
 
 import java.io.BufferedReader;
@@ -20,15 +21,13 @@ public class STPPacketHeader {
 
     public STPPacketHeader(Integer checksum, Integer sequenceNumber, Integer acknowledgemntNumber, InetAddress sourceIP,
                            InetAddress destIP, Integer sourcePort, Integer destPort,Boolean SYN, Boolean ACK, Boolean FIN, Boolean URG) {
-        this.checksum = HeaderValues.b.putInt(checksum).array();
-        HeaderValues.b.clear();
-        //System.out.println(HeaderValues.b.put(this.checksum).getInt());
-        this.sequenceNumber = new byte[8];
-        this.acknowledgemntNumber = new byte[8];
+        this.checksum = assignIntegerToByte(this.checksum, checksum);
+        this.sequenceNumber = assignIntegerToByte(this.getSequenceNumber(),sequenceNumber);
+        this.acknowledgemntNumber = assignIntegerToByte(this.getAcknowledgemntNumber(), acknowledgemntNumber);
         this.sourceIP = sourceIP.getAddress();
         this.destIP = destIP.getAddress();
-        this.sourcePort = new byte[8];
-        this.destPort = new byte[8];
+        this.sourcePort = assignIntegerToByte(this.sourcePort, sourcePort);
+        this.destPort = assignIntegerToByte(this.destPort, destPort);
 
         if(SYN == true)
             this.SYN = HeaderValues.TRUE_HEADER;
@@ -49,31 +48,31 @@ public class STPPacketHeader {
 
         List<Byte> sourceIPList = new ArrayList<>();
         for(int i = 0; i < this.sourceIP.length;i++)
-            sourceIPList.add(this.sourceIP[0]);
+            sourceIPList.add(this.sourceIP[i]);
 
         List<Byte> destIPList = new ArrayList<>();
         for(int i = 0; i < this.destIP.length;i++)
-            destIPList.add(this.destIP[0]);
+            destIPList.add(this.destIP[i]);
 
         List<Byte> checksumList = new ArrayList<>();
         for(int i = 0; i < this.checksum.length;i++)
-            checksumList.add(this.checksum[0]);
+            checksumList.add(this.checksum[i]);
 
         List<Byte> sequenceList = new ArrayList<>();
         for(int i = 0; i < this.sequenceNumber.length;i++)
-            sequenceList.add(this.sequenceNumber[0]);
+            sequenceList.add(this.sequenceNumber[i]);
 
         List<Byte> ackList = new ArrayList<>();
         for(int i = 0; i < this.acknowledgemntNumber.length;i++)
-            ackList.add(this.acknowledgemntNumber[0]);
+            ackList.add(this.acknowledgemntNumber[i]);
 
         List<Byte> srcportList = new ArrayList<>();
         for(int i = 0; i < this.sourcePort.length;i++)
-            srcportList.add(this.sourcePort[0]);
+            srcportList.add(this.sourcePort[i]);
 
         List<Byte> dstportList = new ArrayList<>();
         for(int i = 0; i < this.destPort.length;i++)
-            dstportList.add(this.destPort[0]);
+            dstportList.add(this.destPort[i]);
 
         Pair<List<Byte>,Integer> checksum1 = new Pair<List<Byte>,Integer>(checksumList,checksum);
         Pair<List<Byte>,Integer> sequenceNumber1 = new Pair<List<Byte>,Integer>(sequenceList,sequenceNumber);
@@ -136,5 +135,15 @@ public class STPPacketHeader {
 
     public BytePairs getBp() {
         return bp;
+    }
+
+    public byte[] assignIntegerToByte(byte[] source, Integer integer){
+        HeaderValues.b.clear();
+        byte[] original = HeaderValues.b.putInt(integer).array();
+        source = new byte[original.length];
+        for(int i = 0; i <original.length; i++){
+            source[i] = new Byte(original[i]);
+        }
+        return source;
     }
 }
