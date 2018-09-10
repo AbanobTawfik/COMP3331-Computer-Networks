@@ -41,8 +41,19 @@ public class STPReceiver {
         byte[] payload = new byte[10];
         STPPacket packet = new STPPacket(header,payload);
         packet.getBp().print();
-
-
+        byte[] test = new byte[4];
+        test[0] = 0;
+        test[1] = 1;
+        test[2] = -16;
+        test[3] = 24;
+        byte[] test2 = new byte[4];
+        test2[0] = 1;
+        test2[1] = 2;
+        test2[2] = 3;
+        test2[3] = 4;
+        int int1 = readHeaderValues(header.getChecksum());
+        int int2 = readHeaderValues(header.getAcknowledgemntNumber());
+        System.out.println("after first run - " + int1 + "after second run - " + int2);
 
 //        while (true) {
 //            try {
@@ -87,5 +98,14 @@ public class STPReceiver {
                         request.getAddress().getHostAddress() +
                         ": " +
                         line);
+    }
+
+    public int readHeaderValues(byte[] src){
+        HeaderValues.b.clear();
+        HeaderValues.b.put(src);
+        HeaderValues.b.position(0);
+        int val = new Integer(HeaderValues.b.getInt());
+        System.out.println(val);
+        return val;
     }
 }
