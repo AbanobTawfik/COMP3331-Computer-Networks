@@ -3,6 +3,7 @@ import sun.nio.cs.UTF_32;
 import java.net.*;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Random;
 
 public class STPReceiver {
 
@@ -13,6 +14,14 @@ public class STPReceiver {
     private PacketBuffer buffer;
     private DatagramPacket dataIn = new DatagramPacket(new byte[1024], 1024);
     private DatagramPacket dataOut = new DatagramPacket(new byte[1024], 1024);
+    //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
+    private int sequenceNumber = new Random().nextInt(1147483648);
+    private int ackNumber;
+    private ReadablePacket r;
+    private boolean SYN = false;
+    private boolean ACK = false;
+    private boolean FIN = false;
+    private boolean URG = false;
 
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
@@ -33,25 +42,58 @@ public class STPReceiver {
     public void operate() {
         //initiate the 3 way handshake
         handshake();
+        receiveData();
     }
 
     public void handshake() {
-        STPPacketHeader header = new STPPacketHeader(2147000000, 3000000, 54443,
-                this.IP, this.IP, 8888, 6666, false, true, true, false);
-        byte[] payload = new byte[10];
-        STPPacket packet = new STPPacket(header, payload);
-        dataIn = packet.getPacket();
-        System.out.println(dataIn.getData());
-        ReadablePacket r = new ReadablePacket(dataIn);
-        r.display();
-//        while (true) {
-//            try {
-//                printData(dataIn);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
+        while(!this.SYN){
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if(r.isSYN()) {
+                this.SYN = true;
+                this.ACK = true;
+            }
+        }
+        dataOut.setAddress(r.getSourceIP());
+        dataOut.setPort(r.getSourcePort());
+        //add 1 for SYN bit
+        this.ackNumber = r.getSequenceNumber() + 1;
+        STPPacketHeader handShakeReplyHeader = new STPPacketHeader(0,this.sequenceNumber,this.ackNumber,this.IP,
+                r.getSourceIP(),this.portNumber,r.getSourcePort(),true,true,false,false);
+        STPPacket handShakeReply = new STPPacket(handShakeReplyHeader, new byte[1]);
+        dataOut = handShakeReply.getPacket();
+        try {
+            socket.send(dataOut);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //now we wait for the reply that our reply has been acknowledged
+        while(true){
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if(r.isACK() && r.isSYN())
+                break;
+        }
+    }
 
+    public void receiveData(){
+        while(!this.FIN){
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            this.r = new ReadablePacket(dataIn);
+            //this.ackNumber = this.r.getSequenceNumber() + this.r.get
+        }
     }
 
     public void terminate() {
@@ -64,3 +106,15 @@ public class STPReceiver {
 }
 //more debug code here
 //packet.getBp().print();
+
+//set the destination reply to be the source where we got our initial packet from
+
+
+//                STPPacket packet = new STPPacket(header, payload);
+//                dataIn = packet.getPacket();
+//                System.out.println(dataIn.getData());
+//                ReadablePacket r = new ReadablePacket(dataIn);
+//                r.display();
+//        while (true) {
+
+//        }
