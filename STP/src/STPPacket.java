@@ -27,7 +27,6 @@ public class STPPacket {
         addAllBytes(list, payload);
         Byte[] packetData = list.toArray(new Byte[list.size()]);
         packet.setData(primitive(packetData));
-        bp = header.getBp();
     }
 
     public STPPacketHeader getHeader() {
@@ -54,7 +53,9 @@ public class STPPacket {
     public byte[] primitive(Byte[] bytes) {
         byte[] ret = new byte[bytes.length];
         for (int i = 0; i < bytes.length; i++)
-            ret[i] = bytes[i].byteValue();
+            ret[i] = bytes[i];
         return ret;
     }
 }
+//debug code here!!!
+//        bp = header.getBp();
