@@ -14,6 +14,7 @@ public class ReadablePacket {
     private InetAddress destIP;
     private int sourcePort;
     private int destPort;
+    private byte[] payload;
 
     public ReadablePacket(DatagramPacket srcPacket) {
         if (srcPacket.getData()[HeaderValues.ACK_POSITION_IN_HEADER] == HeaderValues.TRUE_HEADER)
@@ -32,21 +33,22 @@ public class ReadablePacket {
             this.URG = true;
         else
             this.URG = false;
-        this.checksum = extractFromArray(srcPacket.getData(),HeaderValues.CHECKSUM_POSITION_IN_HEADER);
-        this.sequenceNumber = extractFromArray(srcPacket.getData(),HeaderValues.SEQ_POSITION_IN_HEADER);
-        this.acknowledgemntNumber = extractFromArray(srcPacket.getData(),HeaderValues.ACKNUM_POSITION_IN_HEADER);
+        this.checksum = extractFromArray(srcPacket.getData(), HeaderValues.CHECKSUM_POSITION_IN_HEADER);
+        this.sequenceNumber = extractFromArray(srcPacket.getData(), HeaderValues.SEQ_POSITION_IN_HEADER);
+        this.acknowledgemntNumber = extractFromArray(srcPacket.getData(), HeaderValues.ACKNUM_POSITION_IN_HEADER);
         try {
-            this.sourceIP = getInetAddress(srcPacket.getData(),HeaderValues.SRCIP_POSITION_IN_HEADER);
+            this.sourceIP = getInetAddress(srcPacket.getData(), HeaderValues.SRCIP_POSITION_IN_HEADER);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         try {
-            this.destIP = getInetAddress(srcPacket.getData(),HeaderValues.DSTIP_POSITION_IN_HEADER);
+            this.destIP = getInetAddress(srcPacket.getData(), HeaderValues.DSTIP_POSITION_IN_HEADER);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-        this.sourcePort = extractFromArray(srcPacket.getData(),HeaderValues.SRCPRT_POSITION_IN_HEADER);
-        this.destPort = extractFromArray(srcPacket.getData(),HeaderValues.DSTPRT_POSITION_IN_HEADER);
+        this.sourcePort = extractFromArray(srcPacket.getData(), HeaderValues.SRCPRT_POSITION_IN_HEADER);
+        this.destPort = extractFromArray(srcPacket.getData(), HeaderValues.DSTPRT_POSITION_IN_HEADER);
+        this.payload = extractPayLoad(srcPacket.getData());
     }
 
     public boolean isSYN() {
@@ -137,6 +139,14 @@ public class ReadablePacket {
         this.destPort = destPort;
     }
 
+    public byte[] getPayload() {
+        return payload;
+    }
+
+    public void setPayload(byte[] payload) {
+        this.payload = payload;
+    }
+
     public int readHeaderValues(byte[] src) {
         HeaderValues.b.clear();
         HeaderValues.b.put(src);
@@ -145,29 +155,40 @@ public class ReadablePacket {
         return val;
     }
 
-    public int extractFromArray(byte[] src,int start){
+    public int extractFromArray(byte[] src, int start) {
         int length = HeaderValues.DATA_LENGTH;
         byte[] ret = new byte[length];
         int count = 0;
-        for(int i = start; i < start + length; i++){
+        for (int i = start; i < start + length; i++) {
             ret[count] = src[i];
             count++;
         }
         return readHeaderValues(ret);
     }
 
+    public byte[] extractPayLoad(byte[] src) {
+        int payloadlength = src.length - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+        byte[] ret = new byte[payloadlength];
+        int count = 0;
+        for (int i = HeaderValues.PAYLOAD_POSITION_IN_HEADER; i < payloadlength; i++) {
+            ret[count] = src[i];
+            count++;
+        }
+        return ret;
+    }
+
     public InetAddress getInetAddress(byte[] src, int start) throws UnknownHostException {
         int length = HeaderValues.DATA_LENGTH;
         byte[] ret = new byte[length];
         int count = 0;
-        for(int i = start; i < start + length; i++){
+        for (int i = start; i < start + length; i++) {
             ret[count] = src[i];
             count++;
         }
         return InetAddress.getByAddress(ret);
     }
 
-    public void display(){
+    public void display() {
         System.out.println("==================================PACKET INFO==================================");
         System.out.println("SYN - " + this.SYN);
         System.out.println("ACK - " + this.ACK);
