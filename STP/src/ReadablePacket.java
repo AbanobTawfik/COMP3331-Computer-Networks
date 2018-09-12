@@ -170,7 +170,7 @@ public class ReadablePacket {
         int payloadlength = src.length - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
         byte[] ret = new byte[payloadlength];
         int count = 0;
-        for (int i = HeaderValues.PAYLOAD_POSITION_IN_HEADER; i < payloadlength; i++) {
+        for (int i = HeaderValues.PAYLOAD_POSITION_IN_HEADER; i < HeaderValues.PAYLOAD_POSITION_IN_HEADER + payloadlength; i++) {
             ret[count] = src[i];
             count++;
         }

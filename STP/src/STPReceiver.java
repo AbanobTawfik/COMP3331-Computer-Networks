@@ -67,7 +67,7 @@ public class STPReceiver {
         this.ackNumber = r.getSequenceNumber() + 1;
         this.header = new STPPacketHeader(0, this.sequenceNumber, this.ackNumber, this.IP,
                 r.getSourceIP(), this.portNumber, r.getSourcePort(), true, true, false, false);
-        STPPacket handShakeReply = new STPPacket(this.header, new byte[1]);
+        STPPacket handShakeReply = new STPPacket(this.header, new byte[0]);
         dataOut = handShakeReply.getPacket();
         try {
             socket.send(dataOut);
@@ -96,6 +96,9 @@ public class STPReceiver {
             }
             this.r = new ReadablePacket(dataIn);
             //extract payload
+            //drop packet if corrupted data
+            if(r.getChecksum() != checksum(r.getPayload()))
+                continue;
             this.ackNumber = this.r.getSequenceNumber() + this.r.getPayload().length;
             this.sequenceNumber++;
             buffer.addConditionally(this.payloads);
@@ -115,6 +118,19 @@ public class STPReceiver {
 
     }
 
+    public int checksum(byte[] payload){
+        int sum = 0;
+        for(int i = 0; i < payload.length;i++){
+            int add = (int) payload[i];
+            sum += Math.abs(add);
+            sum += (int) payload[i];
+        }
+        return sum;
+    }
+
+    public boolean validCheckSum(ReadablePacket r){
+        return r.getChecksum() == checksum(r.getPayload());
+    }
 
 }
 //more debug code here
