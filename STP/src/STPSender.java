@@ -27,6 +27,7 @@ public class STPSender {
     private int MWS;
     private int MSS;
     private long gamma;
+    private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
     private STPTimer timer = new STPTimer();
 
     public STPSender(String args[]) {
@@ -69,7 +70,13 @@ public class STPSender {
     }
 
     private void prepareFile(){
+        if(!containsFile(fileRequested)) {
+            System.out.println("The file requested does not exist in this directory");
+            System.exit(1);
+        }else{
+            //we want to create a list of ready to send packets (since they are file data we want to turn off most flags)
 
+        }
     }
 
     private void handshake(){
