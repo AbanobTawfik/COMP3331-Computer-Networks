@@ -1,8 +1,5 @@
-import sun.nio.cs.UTF_32;
-
 import java.net.*;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -19,12 +16,15 @@ public class STPReceiver {
     private int sequenceNumber = new Random().nextInt(1147483648);
     private int ackNumber;
     private STPPacketHeader header;
+    private STPPacket packet;
     private ReadablePacket r;
     private boolean SYN = false;
     private boolean ACK = false;
     private boolean FIN = false;
     private boolean URG = false;
     private ArrayList<ReadablePacket> payloads = new ArrayList<ReadablePacket>();
+    private FileOutputStream pdfFile;
+
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
         this.fileRequested = args[1];
@@ -39,17 +39,23 @@ public class STPReceiver {
             e.printStackTrace();
         }
         this.buffer = new PacketBuffer(50);
+        try {
+            this.pdfFile = new FileOutputStream(this.fileRequested);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     public void operate() {
         //initiate the 3 way handshake
+
         handshake();
         receiveData();
         terminate();
     }
 
-    public void handshake() {
-        while (!this.SYN) {
+    private void handshake() {
+        while (!SYN) {
             try {
                 socket.receive(dataIn);
             } catch (IOException e) {
@@ -57,23 +63,18 @@ public class STPReceiver {
             }
             r = new ReadablePacket(dataIn);
             if (r.isSYN()) {
-                this.SYN = true;
-                this.ACK = true;
+                SYN = true;
+                ACK = true;
             }
         }
         dataOut.setAddress(r.getSourceIP());
         dataOut.setPort(r.getSourcePort());
         //add 1 for SYN bit
-        this.ackNumber = r.getSequenceNumber() + 1;
-        this.header = new STPPacketHeader(0, this.sequenceNumber, this.ackNumber, this.IP,
-                r.getSourceIP(), this.portNumber, r.getSourcePort(), true, true, false, false);
-        STPPacket handShakeReply = new STPPacket(this.header, new byte[0]);
-        dataOut = handShakeReply.getPacket();
-        try {
-            socket.send(dataOut);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        ackNumber = r.getSequenceNumber() + 1;
+        header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+        packet = new STPPacket(header, new byte[0]);
+        sendPacket(packet);
         //now we wait for the reply that our reply has been acknowledged
         while (true) {
             try {
@@ -87,7 +88,7 @@ public class STPReceiver {
         }
     }
 
-    public void receiveData() {
+    private void receiveData() {
         while (!this.FIN) {
             try {
                 socket.receive(dataIn);
@@ -97,41 +98,95 @@ public class STPReceiver {
             this.r = new ReadablePacket(dataIn);
             //extract payload
             //drop packet if corrupted data
-            if(r.getChecksum() != checksum(r.getPayload()))
+            if (!validCheckSum(r))
                 continue;
-            this.ackNumber = this.r.getSequenceNumber() + this.r.getPayload().length;
-            this.sequenceNumber++;
-            buffer.addConditionally(this.payloads);
-            if(this.r.getSequenceNumber() > this.ackNumber)
+
+            ackNumber = r.getSequenceNumber() + r.getPayload().length;
+            sequenceNumber++;
+            buffer.addConditionally(payloads);
+            if (r.getSequenceNumber() > ackNumber)
                 buffer.add(new ReadablePacket(dataIn));
-            else
-                payloads.add(new ReadablePacket(dataIn));
+            else {
+                if (!payloads.contains(r))
+                    payloads.add(new ReadablePacket(dataIn));
+            }
             if (r.isFIN())
                 return;
-            this.header = new STPPacketHeader(0, this.sequenceNumber, this.ackNumber, this.IP,
-                    r.getSourceIP(), this.portNumber, r.getSourcePort(), true, true, false, false);
-
+            header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
+                    r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+            packet = new STPPacket(this.header, new byte[0]);
+            sendPacket(packet);
         }
     }
 
-    public void terminate() {
-
+    private void terminate() {
+        //4 way handshake closure, since the server will initiate the close
+        //first send back the FINACK for the servers FIN
+        URG = false;
+        FIN = true;
+        ACK = true;
+        //last packet to send back fin will be R since the while loop terminates
+        header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+        packet = new STPPacket(this.header, new byte[0]);
+        sendPacket(packet);
+        //now we want to send back our FIN to initiate our side of the closure
+        ACK = false;
+        header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+        packet = new STPPacket(this.header, new byte[0]);
+        sendPacket(packet);
+        //now we want to wait for our ack from the server
+        while (true) {
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if (r.isACK() && r.isFIN())
+                break;
+        }
+        socket.close();
+        writeFile();
     }
 
-    public int checksum(byte[] payload){
+    private int checksum(byte[] payload) {
         int sum = 0;
-        for(int i = 0; i < payload.length;i++){
-            int add = (int) payload[i];
-            sum += Math.abs(add);
-            sum += (int) payload[i];
+        for (byte byteData : payload) {
+            sum += (int) byteData;
         }
+        sum = ~sum;
         return sum;
     }
 
-    public boolean validCheckSum(ReadablePacket r){
+    private boolean validCheckSum(ReadablePacket r) {
         return r.getChecksum() == checksum(r.getPayload());
     }
 
+    private void sendPacket(STPPacket p) {
+        dataOut = p.getPacket();
+        try {
+            socket.send(dataOut);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void writeFile() {
+        for (ReadablePacket r : payloads) {
+            try {
+                pdfFile.write(r.getPayload());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            pdfFile.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
 //more debug code here
 //packet.getBp().print();
