@@ -3,8 +3,8 @@ import java.net.*;
 import java.util.*;
 
 public class STPSender {
-    private  File folder = new File(System.getProperty("user.dir"));
-    private  File[] allfiles = folder.listFiles();
+    private File folder = new File(System.getProperty("user.dir"));
+    private File[] allfiles = folder.listFiles();
     private InetAddress IP;
     private int portNumber;
     private DatagramSocket socket;
@@ -29,6 +29,9 @@ public class STPSender {
     private long gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
     private STPTimer timer = new STPTimer();
+    private FileInputStream file;
+    private int windowIndex = 0;
+    private int packetJump;
 
     public STPSender(String args[]) {
         try {
@@ -50,6 +53,7 @@ public class STPSender {
         this.MWS = Integer.parseInt(args[3]);
         this.MSS = Integer.parseInt(args[4]);
         this.gamma = Long.parseLong(args[5]);
+        this.packetJump = Math.floorDiv(MWS, MSS);
         long pDrop = Long.parseLong(args[6]);
         long pDuplicate = Long.parseLong(args[7]);
         long pCorrupt = Long.parseLong(args[8]);
@@ -58,7 +62,7 @@ public class STPSender {
         long pDelay = Long.parseLong(args[11]);
         long maxDelay = Long.parseLong(args[12]);
         long seed = Long.parseLong(args[13]);
-        this.PLD = new Unreliability(pDrop,pDuplicate,pCorrupt,pOrder,maxOrder,pDelay,maxDelay,seed);
+        this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
     }
 
     public void operate() {
@@ -69,25 +73,72 @@ public class STPSender {
         terminate();
     }
 
-    private void prepareFile(){
-        if(!containsFile(fileRequested)) {
+    private void prepareFile() {
+        if (!containsFile(fileRequested)) {
             System.out.println("The file requested does not exist in this directory");
             System.exit(1);
-        }else{
+        } else {
             //we want to create a list of ready to send packets (since they are file data we want to turn off most flags)
-
+            try {
+                file = new FileInputStream(fileRequested);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] packetPayload = new byte[MSS];
+            int read = 0;
+            while (true) {
+                try {
+                    read = file.read(packetPayload);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (read == 0) {
+                    break;
+                }
+                //now we want to store all these payloads into packet
+                header = new STPPacketHeader(checksum(packetPayload), sequenceNumber, 0, IP,
+                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                sequenceNumber += MSS;
+                packet = new STPPacket(header, packetPayload);
+                r = new ReadablePacket(packet.getPacket());
+                filePackets.add(r);
+            }
+            filePackets.get(filePackets.size()).setFIN(true);
         }
     }
 
-    private void handshake(){
+    private void handshake() {
+        SYN = true;
+        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+        packet = new STPPacket(header, new byte[0]);
+        sendPacket(packet);
+        //now we want for SYN ACK back
+        while (true) {
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if (r.isSYN() && r.isACK()) {
+                ACK = true;
+                break;
+            }
+        }
+        //end handshake with the ACK
+        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+        packet = new STPPacket(header, new byte[0]);
+        sendPacket(packet);
 
     }
 
-    private void sendData(){
+    private void sendData() {
 
     }
 
-    private void terminate(){
+    private void terminate() {
 
     }
 
@@ -101,5 +152,21 @@ public class STPSender {
         return false;
     }
 
+    private int checksum(byte[] payload) {
+        int sum = 0;
+        for (byte byteData : payload) {
+            sum += (int) byteData;
+        }
+        sum = ~sum;
+        return sum;
+    }
 
+    private void sendPacket(STPPacket p) {
+        dataOut = p.getPacket();
+        try {
+            socket.send(dataOut);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
