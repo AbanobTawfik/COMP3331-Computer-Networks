@@ -4,7 +4,7 @@ import java.util.*;
 
 public class STPSender {
     private File folder = new File(System.getProperty("user.dir"));
-    private File[] allfiles = folder.listFiles();
+    private File[] allFiles = folder.listFiles();
     private InetAddress IP;
     private int portNumber;
     private DatagramSocket socket;
@@ -139,14 +139,14 @@ public class STPSender {
     }
 
     private void terminate() {
-
+        
     }
 
     private boolean containsFile(String fileName) {
         //scan through directory
-        for (int i = 0; i < allfiles.length; i++)
+        for (int i = 0; i < allFiles.length; i++)
             //if the file name matches one in the directory we return true
-            if (allfiles[i].getName().equals(fileName))
+            if (allFiles[i].getName().equals(fileName))
                 return true;
         //otherwise return false if no files match
         return false;
