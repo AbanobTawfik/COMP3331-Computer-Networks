@@ -137,6 +137,9 @@ public class STPSender {
 
     private void sendData() {
         while (true) {
+            if(filePackets.size() == 0){
+                break;
+            }
             //if there is room inside our window which was calculated from MWS/MSS
             if (window.remainingCapacity() > 0) {
 
@@ -188,9 +191,8 @@ public class STPSender {
 
     private boolean containsFile(String fileName) {
         //scan through directory
-        for (int i = 0; i < allFiles.length; i++)
-            //if the file name matches one in the directory we return true
-            if (allFiles[i].getName().equals(fileName))
+        for (File file : allFiles)
+            if (file.getName().equals(fileName))
                 return true;
         //otherwise return false if no files match
         return false;
