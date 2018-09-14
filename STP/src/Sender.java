@@ -4,6 +4,7 @@ public class Sender {
             System.out.println("usage: <receiver_host_ip> <receiver_port> <file.pdf> <Naximum Window Size>" +
                     "<Maximum Segment Size> <Gamma> <pDrop> <pDuplicate> <pCorrupt> <pOrder> <maxOrder> <pDelay>" +
                     "<maxDelay> <seed>");
+            System.exit(1);
         }
         Sender sender = new Sender();
         sender.operate(args);
