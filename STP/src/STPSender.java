@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class STPSender {
     private File folder = new File(System.getProperty("user.dir"));
@@ -28,10 +29,11 @@ public class STPSender {
     private int MSS;
     private long gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
+    private ArrayBlockingQueue<ReadablePacket> window;
     private STPTimer timer = new STPTimer();
     private FileInputStream file;
     private int windowIndex = 0;
-    private int packetJump;
+    private int windowSize;
 
     public STPSender(String args[]) {
         try {
@@ -53,7 +55,8 @@ public class STPSender {
         this.MWS = Integer.parseInt(args[3]);
         this.MSS = Integer.parseInt(args[4]);
         this.gamma = Long.parseLong(args[5]);
-        this.packetJump = Math.floorDiv(MWS, MSS);
+        this.windowSize = Math.floorDiv(MWS, MSS);
+        window = new ArrayBlockingQueue<>(windowSize);
         long pDrop = Long.parseLong(args[6]);
         long pDuplicate = Long.parseLong(args[7]);
         long pCorrupt = Long.parseLong(args[8]);
@@ -103,7 +106,6 @@ public class STPSender {
                 r = new ReadablePacket(packet.getPacket());
                 filePackets.add(r);
             }
-            filePackets.get(filePackets.size()).setFIN(true);
         }
     }
 
@@ -131,15 +133,57 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-
     }
 
     private void sendData() {
+        while (true) {
+            //if there is room inside our window which was calculated from MWS/MSS
+            if (window.remainingCapacity() > 0) {
 
+            }
+        }
     }
 
     private void terminate() {
-        
+        //send out the FIN
+        FIN = true;
+        URG = false;
+        ACK = false;
+        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+        packet = new STPPacket(header, new byte[0]);
+        sendPacket(packet);
+        //now wait for the FIN ACK
+        while(true){
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if (r.isFIN() && r.isACK()) {
+                break;
+            }
+        }
+        //now wait for the FIN
+        while(true){
+            try {
+                socket.receive(dataIn);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            r = new ReadablePacket(dataIn);
+            if (r.isFIN() && !r.isACK()) {
+                break;
+            }
+        }
+        //send back an FIN ACK to the client
+        FIN = true;
+        ACK = true;
+        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+        packet = new STPPacket(header, new byte[0]);
+        sendPacket(packet);
     }
 
     private boolean containsFile(String fileName) {
