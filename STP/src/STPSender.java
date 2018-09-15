@@ -141,8 +141,12 @@ public class STPSender {
                 break;
             }
             //if there is room inside our window we will transmit a window size from current index (based off last ACK)
-            if (window.remainingCapacity() > 0) {
+            if (window.remainingCapacity() == windowSize) {
                 transmit();
+            }else{
+                receivePacket();
+                r = new ReadablePacket(dataIn);
+                //r.getAcknowledgemntNumber();
             }
         }
     }
@@ -207,6 +211,14 @@ public class STPSender {
         return sum;
     }
 
+    private void transmit(){
+        for(int i = windowIndex; i < windowSize+windowIndex;i++ ) {
+            packet = new STPPacket(filePackets.get(i));
+            window.add(filePackets.get(i));
+            sendPacket(packet);
+        }
+    }
+
     private void sendPacket(STPPacket p) {
         dataOut = p.getPacket();
         try {
@@ -216,11 +228,11 @@ public class STPSender {
         }
     }
 
-    private void transmit(){
-        for(int i = windowIndex; i < windowSize+windowIndex;i++ ) {
-            packet = new STPPacket(filePackets.get(i));
-            window.add(filePackets.get(i));
-            sendPacket(packet);
+    private void receivePacket(){
+        try {
+            socket.receive(dataIn);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
