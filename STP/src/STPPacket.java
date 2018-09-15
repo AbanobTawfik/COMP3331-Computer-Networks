@@ -9,6 +9,12 @@ public class STPPacket {
     private DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
     private BytePairs bp;
 
+    public STPPacket(ReadablePacket r){
+        this.header = new STPPacketHeader(r.getChecksum(),r.getSequenceNumber(),r.getAcknowledgemntNumber(),
+                r.getSourceIP(),r.getDestIP(),r.getSourcePort(),r.getDestPort(),r.isSYN(),r.isACK(),r.isFIN(),r.isURG());
+        this.payload = r.getPayload();
+    }
+
     public STPPacket(STPPacketHeader header, byte[] payload) {
         this.header = header;
         this.payload = payload;

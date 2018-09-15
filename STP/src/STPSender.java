@@ -140,9 +140,9 @@ public class STPSender {
             if(filePackets.size() == 0){
                 break;
             }
-            //if there is room inside our window which was calculated from MWS/MSS
+            //if there is room inside our window we will transmit a window size from current index (based off last ACK)
             if (window.remainingCapacity() > 0) {
-
+                transmit();
             }
         }
     }
@@ -213,6 +213,14 @@ public class STPSender {
             socket.send(dataOut);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void transmit(){
+        for(int i = windowIndex; i < windowSize+windowIndex;i++ ) {
+            packet = new STPPacket(filePackets.get(i));
+            window.add(filePackets.get(i));
+            sendPacket(packet);
         }
     }
 }
