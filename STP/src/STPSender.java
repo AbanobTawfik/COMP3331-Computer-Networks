@@ -57,6 +57,7 @@ public class STPSender {
             e.printStackTrace();
         }
         this.receiverPort = Integer.parseInt(args[1]);
+
         dataOut.setAddress(this.receiverIP);
         dataOut.setPort(this.receiverPort);
         this.fileRequested = args[2];

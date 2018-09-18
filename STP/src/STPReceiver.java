@@ -104,7 +104,7 @@ public class STPReceiver {
             r = new ReadablePacket(dataIn);
             //extract payload
             //drop packet if corrupted data
-            if (!validCheckSum(r) || outOfOrderPacket(r))
+            if (!validCheckSum(r))
                 ACK = false;
             else
                 ACK = true;

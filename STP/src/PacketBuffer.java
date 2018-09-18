@@ -31,7 +31,9 @@ public class PacketBuffer {
     }
 
     public void addConditionally(ArrayList<ReadablePacket> src){
-        while(src.get(src.size()).getSequenceNumber() > peek_sequence_number()){
+        if(src.size() == 0 || buffer.size() == 0)
+            return;
+        while(src.get(src.size()-1).getSequenceNumber() > peek_sequence_number()){
             src.add(remove());
         }
     }
