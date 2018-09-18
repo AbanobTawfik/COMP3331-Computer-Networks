@@ -95,12 +95,13 @@ public class STPReceiver {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            this.r = new ReadablePacket(dataIn);
+            r = new ReadablePacket(dataIn);
             //extract payload
             //drop packet if corrupted data
-            if (!validCheckSum(r))
-                continue;
-
+            if (!validCheckSum(r) || outOfOrderPacket(r))
+                ACK = false;
+            else
+                ACK = true;
             ackNumber = r.getSequenceNumber() + r.getPayload().length;
             sequenceNumber++;
             buffer.addConditionally(payloads);
@@ -186,6 +187,10 @@ public class STPReceiver {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean outOfOrderPacket(ReadablePacket r){
+        return (r.getPayload().length + payloads.get(payloads.size()).getSequenceNumber() == r.getSequenceNumber());
     }
 }
 //more debug code here

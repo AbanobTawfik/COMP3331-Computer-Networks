@@ -137,16 +137,20 @@ public class STPSender {
 
     private void sendData() {
         while (true) {
-            if(filePackets.size() == 0){
+            if (filePackets.size() == 0) {
                 break;
             }
             //if there is room inside our window we will transmit a window size from current index (based off last ACK)
             if (window.remainingCapacity() == windowSize) {
                 transmit();
-            }else{
+            } else {
                 receivePacket();
                 r = new ReadablePacket(dataIn);
-                //r.getAcknowledgemntNumber();
+                if (!r.isACK()) {
+                    window.clear();
+                }
+                sequenceNumber = r.getAcknowledgemntNumber() + 1;
+
             }
         }
     }
@@ -161,7 +165,7 @@ public class STPSender {
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
         //now wait for the FIN ACK
-        while(true){
+        while (true) {
             try {
                 socket.receive(dataIn);
             } catch (IOException e) {
@@ -173,7 +177,7 @@ public class STPSender {
             }
         }
         //now wait for the FIN
-        while(true){
+        while (true) {
             try {
                 socket.receive(dataIn);
             } catch (IOException e) {
@@ -211,8 +215,8 @@ public class STPSender {
         return sum;
     }
 
-    private void transmit(){
-        for(int i = windowIndex; i < windowSize+windowIndex;i++ ) {
+    private void transmit() {
+        for (int i = windowIndex; i < windowSize + windowIndex; i++) {
             packet = new STPPacket(filePackets.get(i));
             window.add(filePackets.get(i));
             sendPacket(packet);
@@ -228,11 +232,15 @@ public class STPSender {
         }
     }
 
-    private void receivePacket(){
+    private void receivePacket() {
         try {
             socket.receive(dataIn);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void removePacketFromWindow(ReadablePacket r){
+
     }
 }
