@@ -27,7 +27,7 @@ public class STPSender {
     private Unreliability PLD;
     private int MWS;
     private int MSS;
-    private long gamma;
+    private float gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
     private ArrayBlockingQueue<ReadablePacket> window;
     private STPTimer timer = new STPTimer();
@@ -37,34 +37,42 @@ public class STPSender {
 
     public STPSender(String args[]) {
         try {
-            this.socket = new DatagramSocket();
+            this.IP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        this.portNumber = 2000 + new Random().nextInt(60000);
+        try {
+            this.socket = new DatagramSocket(this.portNumber,this.IP);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        dataOut.setAddress(this.receiverIP);
-        dataOut.setPort(this.receiverPort);
-        this.IP = socket.getInetAddress();
-        this.portNumber = socket.getPort();
         try {
-            this.receiverIP = InetAddress.getByName(args[0]);
+            if(args[0].equals("localhost") || args[0].equals("127.0.0.1")){
+                this.receiverIP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
+            }else {
+                this.receiverIP = InetAddress.getByName(args[0]);
+            }
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         this.receiverPort = Integer.parseInt(args[1]);
+        dataOut.setAddress(this.receiverIP);
+        dataOut.setPort(this.receiverPort);
         this.fileRequested = args[2];
         this.MWS = Integer.parseInt(args[3]);
         this.MSS = Integer.parseInt(args[4]);
-        this.gamma = Long.parseLong(args[5]);
+        this.gamma = Float.parseFloat(args[5]);
         this.windowSize = Math.floorDiv(MWS, MSS);
         window = new ArrayBlockingQueue<>(windowSize);
-        long pDrop = Long.parseLong(args[6]);
-        long pDuplicate = Long.parseLong(args[7]);
-        long pCorrupt = Long.parseLong(args[8]);
-        long pOrder = Long.parseLong(args[9]);
+        float pDrop = Float.parseFloat(args[6]);
+        float pDuplicate = Float.parseFloat(args[7]);
+        float pCorrupt = Float.parseFloat(args[8]);
+        float pOrder = Float.parseFloat(args[9]);
         int maxOrder = Integer.parseInt(args[10]);
-        long pDelay = Long.parseLong(args[11]);
-        long maxDelay = Long.parseLong(args[12]);
-        long seed = Long.parseLong(args[13]);
+        float pDelay = Float.parseFloat(args[11]);
+        float maxDelay = Float.parseFloat(args[12]);
+        float seed = Float.parseFloat(args[13]);
         this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
     }
 
@@ -95,7 +103,7 @@ public class STPSender {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                if (read == 0) {
+                if (read <= 0) {
                     break;
                 }
                 //now we want to store all these payloads into packet
@@ -117,11 +125,7 @@ public class STPSender {
         sendPacket(packet);
         //now we want for SYN ACK back
         while (true) {
-            try {
-                socket.receive(dataIn);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            receivePacket();
             r = new ReadablePacket(dataIn);
             if (r.isSYN() && r.isACK()) {
                 ACK = true;
@@ -133,6 +137,7 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
+        r.display();
     }
 
     private void sendData() {
@@ -150,6 +155,7 @@ public class STPSender {
                     window.clear();
                 }
                 sequenceNumber = r.getAcknowledgemntNumber() + 1;
+                window.remove(r);
 
             }
         }
@@ -225,6 +231,8 @@ public class STPSender {
 
     private void sendPacket(STPPacket p) {
         dataOut = p.getPacket();
+        dataOut.setAddress(receiverIP);
+        dataOut.setPort(receiverPort);
         try {
             socket.send(dataOut);
         } catch (IOException e) {
@@ -234,13 +242,11 @@ public class STPSender {
 
     private void receivePacket() {
         try {
+            dataIn.setAddress(receiverIP);
+            dataIn.setPort(receiverPort);
             socket.receive(dataIn);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void removePacketFromWindow(ReadablePacket r){
-
     }
 }

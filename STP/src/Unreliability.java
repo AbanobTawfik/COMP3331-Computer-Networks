@@ -1,14 +1,14 @@
 public class Unreliability {
-    private long pDrop;
-    private long pDuplicate;
-    private long pCorrupt;
-    private long pOrder;
+    private float pDrop;
+    private float pDuplicate;
+    private float pCorrupt;
+    private float pOrder;
     private int maxOrder;
-    private long pDelay;
-    private long maxDelay;
-    private long seed;
+    private float pDelay;
+    private float maxDelay;
+    private float seed;
 
-    public Unreliability(long pDrop, long pDuplicate, long pCorrupt, long pOrder, int maxOrder, long pDelay, long maxDelay, long seed) {
+    public Unreliability(float pDrop, float pDuplicate, float pCorrupt, float pOrder, int maxOrder, float pDelay, float maxDelay, float seed) {
         this.pDrop = pDrop;
         this.pDuplicate = pDuplicate;
         this.pCorrupt = pCorrupt;
@@ -19,19 +19,19 @@ public class Unreliability {
         this.seed = seed;
     }
 
-    public long getpDrop() {
+    public float getpDrop() {
         return pDrop;
     }
 
-    public long getpDuplicate() {
+    public float getpDuplicate() {
         return pDuplicate;
     }
 
-    public long getpCorrupt() {
+    public float getpCorrupt() {
         return pCorrupt;
     }
 
-    public long getpOrder() {
+    public float getpOrder() {
         return pOrder;
     }
 
@@ -39,15 +39,15 @@ public class Unreliability {
         return maxOrder;
     }
 
-    public long getpDelay() {
+    public float getpDelay() {
         return pDelay;
     }
 
-    public long getMaxDelay() {
+    public float getMaxDelay() {
         return maxDelay;
     }
 
-    public long getSeed() {
+    public float getSeed() {
         return seed;
     }
 }

@@ -6,6 +6,8 @@ import java.util.Random;
 public class STPReceiver {
 
     private InetAddress IP;
+    private InetAddress senderIP;
+    private int senderPort;
     private int portNumber;
     private DatagramSocket socket;
     private String fileRequested;
@@ -67,6 +69,8 @@ public class STPReceiver {
                 ACK = true;
             }
         }
+        this.senderIP = r.getSourceIP();
+        this.senderPort = r.getSourcePort();
         dataOut.setAddress(r.getSourceIP());
         dataOut.setPort(r.getSourcePort());
         //add 1 for SYN bit
@@ -86,6 +90,8 @@ public class STPReceiver {
             if (r.isACK() && r.isSYN())
                 break;
         }
+        r.display();
+        System.out.println("handshake complete");
     }
 
     private void receiveData() {
@@ -167,12 +173,15 @@ public class STPReceiver {
 
     private void sendPacket(STPPacket p) {
         dataOut = p.getPacket();
+        dataOut.setAddress(senderIP);
+        dataOut.setPort(senderPort);
         try {
             socket.send(dataOut);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     private void writeFile() {
         for (ReadablePacket r : payloads) {
