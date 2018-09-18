@@ -154,8 +154,10 @@ public class STPSender {
                 r = new ReadablePacket(dataIn);
                 if (!r.isACK()) {
                     window.clear();
+                    continue;
                 }
                 sequenceNumber = r.getAcknowledgemntNumber() + 1;
+                windowIndex++;
                 window.remove(r);
 
             }

@@ -13,6 +13,21 @@ public class STPPacket {
         this.header = new STPPacketHeader(r.getChecksum(),r.getSequenceNumber(),r.getAcknowledgemntNumber(),
                 r.getSourceIP(),r.getDestIP(),r.getSourcePort(),r.getDestPort(),r.isSYN(),r.isACK(),r.isFIN(),r.isURG());
         this.payload = r.getPayload();
+        ArrayList<Byte> list = new ArrayList<Byte>();
+        list.add(header.isACK());
+        list.add(header.isSYN());
+        list.add(header.isFIN());
+        list.add(header.isURG());
+        addAllBytes(list,header.getSequenceNumber());
+        addAllBytes(list,header.getChecksum());
+        addAllBytes(list,header.getAcknowledgemntNumber());
+        addAllBytes(list, header.getDestIP());
+        addAllBytes(list, header.getSourceIP());
+        addAllBytes(list,header.getSourcePort());
+        addAllBytes(list,header.getDestPort());
+        addAllBytes(list, payload);
+        Byte[] packetData = list.toArray(new Byte[list.size()]);
+        packet.setData(primitive(packetData));
     }
 
     public STPPacket(STPPacketHeader header, byte[] payload) {

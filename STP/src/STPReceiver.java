@@ -75,7 +75,7 @@ public class STPReceiver {
         dataOut.setPort(r.getSourcePort());
         //add 1 for SYN bit
         ackNumber = r.getSequenceNumber() + 1;
-        header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
+        header = new STPPacketHeader(0, r.getSequenceNumber(), ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
