@@ -1,8 +1,10 @@
 import java.net.*;
 import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 
 public class STPReceiver {
+    private STPTimer timer;
     private InetAddress IP;
     private InetAddress senderIP;
     private int senderPort;
@@ -31,6 +33,9 @@ public class STPReceiver {
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
         this.fileRequested = args[1];
+        File dir = new File("created_files");
+        dir.mkdir();
+        this.fileRequested = dir.getAbsolutePath() + "/"+ this.fileRequested;
         try {
             this.IP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
         } catch (UnknownHostException e) {
@@ -56,7 +61,7 @@ public class STPReceiver {
 
     public void operate() {
         //initiate the 3 way handshake
-
+        //timer.run();
         handshake();
         receiveData();
         terminate();
