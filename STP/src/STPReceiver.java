@@ -108,7 +108,7 @@ public class STPReceiver {
                 e.printStackTrace();
             }
             r = new ReadablePacket(dataIn);
-            if (firstDataSizeFlag == false) {
+            if (!firstDataSizeFlag) {
                 payloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 firstDataSizeFlag = true;
             }

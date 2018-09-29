@@ -9,7 +9,7 @@ public class STPTimer extends Thread{
             while (true) {
                 millisecondsElapsed = System.currentTimeMillis() - timeStarted;
                 try{
-                    Thread.sleep(100);
+                    Thread.sleep(1000);
                 }catch(Exception e){
                     e.printStackTrace();
                 }
