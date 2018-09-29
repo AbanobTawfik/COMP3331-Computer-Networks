@@ -143,18 +143,19 @@ public class STPSender {
 
     private void sendData() {
 
-        PrintWriter writer = null;
+        FileOutputStream writer = null;
         try {
-            writer = new PrintWriter("test2.txt", "UTF-8");
+            writer = new FileOutputStream("test2.pdf");
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
         for(int i = 0; i < filePackets.size(); i ++){
-            System.out.println(i + " = " + filePackets.get(i).getSequenceNumber());
-            writer.println(filePackets.get(i).getSequenceNumber());
-            writer.flush();
+            try {
+                writer.write(filePackets.get(i).getPayload());
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         while (true) {

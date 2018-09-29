@@ -1,8 +1,6 @@
 import java.net.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Random;
+import java.util.*;
 
 public class STPReceiver {
     private InetAddress IP;
@@ -25,7 +23,8 @@ public class STPReceiver {
     private boolean FIN = false;
     private boolean URG = false;
     private ArrayList<ReadablePacket> payloads = new ArrayList<ReadablePacket>();
-    private FileOutputStream pdfFile;
+    private OutputStream pdfFile;
+    private int payloadSize;
 
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
@@ -185,27 +184,16 @@ public class STPReceiver {
 
 
     private void writeFile() {
+        payloadSize = unpaddedPayload(payloads.get(0).getPayload()).length;
         payloads.remove(payloads.get(payloads.size()-1));
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter("test1.txt", "UTF-8");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        for(ReadablePacket r : payloads){
-           writer.println(r.getSequenceNumber());
-           writer.flush();
-        }
-        //payloads.remove(payloads.get(payloads.size() - 1));
-        for (ReadablePacket r : payloads) {
+       // for (int i = 0; i < payloads.size();i++) {
             try {
-                pdfFile.write(unpaddedPayload(r.getPayload()));
+                pdfFile.write(makebigArray());
+                pdfFile.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+        //}
         try {
             pdfFile.close();
         } catch (IOException e) {
@@ -235,5 +223,19 @@ public class STPReceiver {
             ret[i] = src[i];
         }
         return ret;
+    }
+
+    public byte[] makebigArray(){
+        ArrayList<Byte> ret = new ArrayList<Byte>();
+        for(ReadablePacket r: payloads){
+           for(int i = 0; i < payloadSize;i++){
+               ret.add(r.getPayload()[i]);
+           }
+        }
+        byte[] retByteArray = new byte[ret.size()];
+        for(int i = 0; i < ret.size(); i++){
+            retByteArray[i] = ret.get(i);
+        }
+        return retByteArray;
     }
 }
