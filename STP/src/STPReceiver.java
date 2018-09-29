@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class STPReceiver {
-    private STPTimer timer;
+    private STPTimer timer = new STPTimer();
     private InetAddress IP;
     private InetAddress senderIP;
     private int senderPort;
@@ -60,8 +60,7 @@ public class STPReceiver {
     }
 
     public void operate() {
-        //initiate the 3 way handshake
-        //timer.run();
+        timer.run();
         handshake();
         receiveData();
         terminate();

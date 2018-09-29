@@ -8,8 +8,9 @@ public class STPTimer extends Thread{
             //infinitely generating boards with a delay
             while (true) {
                 millisecondsElapsed = System.currentTimeMillis() - timeStarted;
+                System.out.println("time elapsed - " + millisecondsElapsed/1000);
                 try{
-                    Thread.sleep(1000);
+                    //Thread.sleep(1000);
                 }catch(Exception e){
                     e.printStackTrace();
                 }

@@ -85,6 +85,7 @@ public class STPSender {
 
     public void operate() {
         //initiate the 3 way handshake
+        timer.run();
         prepareFile();
         handshake();
         sendData();
