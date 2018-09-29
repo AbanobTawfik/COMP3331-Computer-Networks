@@ -34,6 +34,7 @@ public class STPSender {
     private FileInputStream file;
     private int windowIndex = 0;
     private int windowSize;
+    private FileWriter logFile;
 
     public STPSender(String args[]) {
         try {
@@ -75,6 +76,11 @@ public class STPSender {
         float maxDelay = Float.parseFloat(args[12]);
         float seed = Float.parseFloat(args[13]);
         this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
+        try {
+            this.logFile = new FileWriter("Sender Log.txt");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void operate() {
@@ -142,10 +148,9 @@ public class STPSender {
     }
 
     private void sendData() {
-
         FileOutputStream writer = null;
         try {
-            writer = new FileOutputStream("test2.pdf");
+            writer = new FileOutputStream("test2333.pdf");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -157,7 +162,6 @@ public class STPSender {
                 e.printStackTrace();
             }
         }
-
         while (true) {
             if (filePackets.size() == windowIndex) {
                 break;
