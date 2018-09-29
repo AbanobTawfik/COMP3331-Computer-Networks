@@ -1,10 +1,10 @@
 import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Random;
 
 public class STPReceiver {
-
     private InetAddress IP;
     private InetAddress senderIP;
     private int senderPort;
@@ -108,7 +108,8 @@ public class STPReceiver {
                 ACK = false;
             else
                 ACK = true;
-            ackNumber = r.getSequenceNumber() + r.getPayload().length;
+
+            ackNumber = r.getSequenceNumber(); //+ payloadLength();
             sequenceNumber++;
             buffer.addConditionally(payloads);
             if (r.getSequenceNumber() > ackNumber)
@@ -184,9 +185,23 @@ public class STPReceiver {
 
 
     private void writeFile() {
+        payloads.remove(payloads.get(payloads.size()-1));
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter("test1.txt", "UTF-8");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        for(ReadablePacket r : payloads){
+           writer.println(r.getSequenceNumber());
+           writer.flush();
+        }
+        //payloads.remove(payloads.get(payloads.size() - 1));
         for (ReadablePacket r : payloads) {
             try {
-                pdfFile.write(r.getPayload());
+                pdfFile.write(unpaddedPayload(r.getPayload()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -198,21 +213,27 @@ public class STPReceiver {
         }
     }
 
-    private boolean outOfOrderPacket(ReadablePacket r){
+    private boolean outOfOrderPacket(ReadablePacket r) {
         return (r.getPayload().length + payloads.get(payloads.size()).getSequenceNumber() == r.getSequenceNumber());
     }
+
+    private int payloadLength() {
+        int count = 0;
+        while (r.getPayload()[count] != 0) {
+            count++;
+        }
+        return count;
+    }
+
+    public byte[] unpaddedPayload(byte[] src) {
+        int count = 0;
+        while (src[count] != 0) {
+            count++;
+        }
+        byte[] ret = new byte[count];
+        for (int i = 0; i < count; i++) {
+            ret[i] = src[i];
+        }
+        return ret;
+    }
 }
-//more debug code here
-//packet.getBp().print();
-
-//set the destination reply to be the source where we got our initial packet from
-
-
-//                STPPacket packet = new STPPacket(header, payload);
-//                dataIn = packet.getPacket();
-//                System.out.println(dataIn.getData());
-//                ReadablePacket r = new ReadablePacket(dataIn);
-//                r.display();
-//        while (true) {
-
-//        }

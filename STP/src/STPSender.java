@@ -43,14 +43,14 @@ public class STPSender {
         }
         this.portNumber = 2000 + new Random().nextInt(60000);
         try {
-            this.socket = new DatagramSocket(this.portNumber,this.IP);
+            this.socket = new DatagramSocket(this.portNumber, this.IP);
         } catch (Exception e) {
             e.printStackTrace();
         }
         try {
-            if(args[0].equals("localhost") || args[0].equals("127.0.0.1")){
+            if (args[0].equals("localhost") || args[0].equals("127.0.0.1")) {
                 this.receiverIP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
-            }else {
+            } else {
                 this.receiverIP = InetAddress.getByName(args[0]);
             }
         } catch (UnknownHostException e) {
@@ -142,24 +142,43 @@ public class STPSender {
     }
 
     private void sendData() {
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter("test2.txt", "UTF-8");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        for(int i = 0; i < filePackets.size(); i ++){
+            System.out.println(i + " = " + filePackets.get(i).getSequenceNumber());
+            writer.println(filePackets.get(i).getSequenceNumber());
+            writer.flush();
+        }
+
         while (true) {
-            if (filePackets.size() == 0) {
+            if (filePackets.size() == windowIndex) {
                 break;
             }
             //if there is room inside our window we will transmit a window size from current index (based off last ACK)
-            if (window.remainingCapacity() == windowSize) {
-                transmit();
+            if (window.remainingCapacity() > 0) {
+                packet = new STPPacket(filePackets.get(windowIndex));
+                window.add(filePackets.get(windowIndex));
+                windowIndex++;
+                sendPacket(packet);
             } else {
                 receivePacket();
                 r = new ReadablePacket(dataIn);
-                if (!r.isACK()) {
-                    window.clear();
+                if (r.isACK()) {
+                    for (ReadablePacket read : window) {
+                        if(r.getAcknowledgemntNumber() == read.getSequenceNumber()){
+                            window.remove(read);
+                            //filePackets.remove(read);
+                        }
+                    }
                     continue;
                 }
-                sequenceNumber = r.getAcknowledgemntNumber() + 1;
-                windowIndex++;
-                window.remove(r);
-
             }
         }
     }

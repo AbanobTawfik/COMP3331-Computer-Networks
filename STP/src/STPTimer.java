@@ -7,7 +7,12 @@ public class STPTimer extends Thread{
         new Thread(() -> {
             //infinitely generating boards with a delay
             while (true) {
-                millisecondsElapsed += System.currentTimeMillis() - timeStarted;
+                millisecondsElapsed = System.currentTimeMillis() - timeStarted;
+                try{
+                    Thread.sleep(100);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
             }
         }).start();
     }

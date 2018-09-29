@@ -7,7 +7,6 @@ public class STPPacket {
     private STPPacketHeader header;
     private byte[] payload;
     private DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
-    private BytePairs bp;
 
     public STPPacket(ReadablePacket r){
         this.header = new STPPacketHeader(r.getChecksum(),r.getSequenceNumber(),r.getAcknowledgemntNumber(),
@@ -60,10 +59,6 @@ public class STPPacket {
 
     public DatagramPacket getPacket() {
         return packet;
-    }
-
-    public BytePairs getBp() {
-        return bp;
     }
 
     public void addAllBytes(ArrayList<Byte> array, byte[] value) {
