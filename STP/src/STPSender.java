@@ -85,11 +85,12 @@ public class STPSender {
 
     public void operate() {
         //initiate the 3 way handshake
-        timer.run();
+        timer.start();
         prepareFile();
         handshake();
         sendData();
         terminate();
+        System.exit(0);
     }
 
     private void prepareFile() {
@@ -149,20 +150,6 @@ public class STPSender {
     }
 
     private void sendData() {
-        FileOutputStream writer = null;
-        try {
-            writer = new FileOutputStream("test2333.pdf");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        for(int i = 0; i < filePackets.size(); i ++){
-            try {
-                writer.write(filePackets.get(i).getPayload());
-                writer.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         while (true) {
             if (filePackets.size() == windowIndex) {
                 break;
@@ -276,5 +263,21 @@ public class STPSender {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void logWrite(DatagramPacket p, int sequenceNumber, int ackNumber, String sndOrReceive, String status){
+        System.out.println(timer.timePassed());
+        float timePassed = timer.timePassed()/1000;
+        String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
+                + sequenceNumber + "\t\t" + (p.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER) + "\t\t"
+                + ackNumber + "\n",timePassed);
+        System.out.println(s);
+        try {
+            logFile.write(s);
+            logFile.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }

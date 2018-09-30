@@ -53,7 +53,7 @@ public class STPReceiver {
             e.printStackTrace();
         }
         try {
-            this.logFile = new FileWriter("Receiver Log.txt", true);
+            this.logFile = new FileWriter("Receiver Log.txt");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -64,6 +64,7 @@ public class STPReceiver {
         handshake();
         receiveData();
         terminate();
+        System.exit(0);
     }
 
     private void handshake() {
@@ -75,6 +76,7 @@ public class STPReceiver {
             }
             r = new ReadablePacket(dataIn);
             if (r.isSYN()) {
+                logWrite(0,r.getSequenceNumber(),r.getSequenceNumber(),"rcv","S");
                 SYN = true;
                 ACK = true;
             }
@@ -88,6 +90,7 @@ public class STPReceiver {
         header = new STPPacketHeader(0, r.getSequenceNumber(), ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
+        logWrite(0,sequenceNumber,ackNumber,"snd","SA");
         sendPacket(packet);
         //now we wait for the reply that our reply has been acknowledged
         while (true) {
@@ -215,5 +218,21 @@ public class STPReceiver {
 
     public byte[] unpaddedPayload(ReadablePacket r) {
         return Arrays.copyOf(r.getPayload(), payloadSize);
+    }
+
+    public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status){
+        System.out.println(timer.timePassed());
+        float timePassed = timer.timePassed()/1000;
+        String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
+                  + sequenceNumber + "\t\t" + length + "\t\t"
+                  + ackNumber + "\n",timePassed);
+        System.out.println(s);
+        try {
+            logFile.write(s);
+            logFile.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }
