@@ -10,8 +10,8 @@ public class STPSender {
     private int portNumber;
     private DatagramSocket socket;
     private String fileRequested;
-    private DatagramPacket dataIn = new DatagramPacket(new byte[1024], 1024);
-    private DatagramPacket dataOut = new DatagramPacket(new byte[1024], 1024);
+    private DatagramPacket dataIn = new DatagramPacket(new byte[10024], 10024);
+    private DatagramPacket dataOut = new DatagramPacket(new byte[10024], 10024);
     //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
     private int sequenceNumber = new Random().nextInt(1147483648);
     private int ackNumber;
