@@ -35,6 +35,8 @@ public class STPSender {
     private int windowIndex = 0;
     private int windowSize;
     private FileWriter logFile;
+    private int estimatedRTT = 500;
+    private int devRTT = 250;
 
     public STPSender(String args[]) {
         try {
@@ -133,12 +135,26 @@ public class STPSender {
         sendPacket(packet);
         //now we want for SYN ACK back
         while (true) {
-            receivePacket();
-            r = new ReadablePacket(dataIn);
-            if (r.isSYN() && r.isACK()) {
-                ACK = true;
-                break;
+            try {
+                socket.setSoTimeout(estimatedRTT + 4*devRTT);
+                dataIn.setAddress(receiverIP);
+                dataIn.setPort(receiverPort);
+                socket.receive(dataIn);
+                r = new ReadablePacket(dataIn);
+                if (r.isSYN() && r.isACK()) {
+                    ACK = true;
+                    break;
+                }
+            } catch (SocketTimeoutException e) {
+                SYN = true;
+                header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                packet = new STPPacket(header, new byte[0]);
+                sendPacket(packet);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
         }
         //end handshake with the ACK
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
@@ -160,17 +176,27 @@ public class STPSender {
                 windowIndex++;
                 sendPacket(packet);
             } else {
-                receivePacket();
-                r = new ReadablePacket(dataIn);
-                if (r.isACK()) {
-                    for (ReadablePacket read : window) {
-                        if(r.getAcknowledgemntNumber() == read.getSequenceNumber()){
-                            window.remove(read);
-                            //filePackets.remove(read);
+                try {
+                    dataIn.setAddress(receiverIP);
+                    dataIn.setPort(receiverPort);
+                    socket.setSoTimeout(estimatedRTT + 4*devRTT);
+                    socket.receive(dataIn);
+                    r = new ReadablePacket(dataIn);
+                    if (r.isACK()) {
+                        for (ReadablePacket read : window) {
+                            if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
+                                window.remove(read);
+                                //filePackets.remove(read);
+                            }
                         }
+                        continue;
                     }
-                    continue;
+                } catch (SocketTimeoutException e) {
+                    System.out.println("hello");
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
+
             }
         }
     }
@@ -254,22 +280,21 @@ public class STPSender {
         }
     }
 
-    private void receivePacket() {
+
+    public void setTimeOut(){
+        int timeout = estimatedRTT + 4*devRTT;
         try {
-            dataIn.setAddress(receiverIP);
-            dataIn.setPort(receiverPort);
-            socket.receive(dataIn);
-        } catch (IOException e) {
-            e.printStackTrace();
+            socket.setSoTimeout(timeout);
+        } catch (SocketException e) {
         }
     }
 
-    public void logWrite(DatagramPacket p, int sequenceNumber, int ackNumber, String sndOrReceive, String status){
+    public void logWrite(DatagramPacket p, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
         System.out.println(timer.timePassed());
-        float timePassed = timer.timePassed()/1000;
+        float timePassed = timer.timePassed() / 1000;
         String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
                 + sequenceNumber + "\t\t" + (p.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER) + "\t\t"
-                + ackNumber + "\n",timePassed);
+                + ackNumber + "\n", timePassed);
         System.out.println(s);
         try {
             logFile.write(s);

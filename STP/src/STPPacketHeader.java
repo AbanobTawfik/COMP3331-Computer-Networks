@@ -21,7 +21,7 @@ public class STPPacketHeader {
 
     public STPPacketHeader(Integer checksum, Integer sequenceNumber, Integer acknowledgemntNumber, InetAddress sourceIP,
                            InetAddress destIP, Integer sourcePort, Integer destPort,Boolean SYN, Boolean ACK, Boolean FIN, Boolean URG) {
-        this.checksum = assignIntegerToByte(this.checksum, checksum);
+        this.checksum = assignIntegerToByte(this.getChecksum(), checksum);
         this.sequenceNumber = assignIntegerToByte(this.getSequenceNumber(),sequenceNumber);
         this.acknowledgemntNumber = assignIntegerToByte(this.getAcknowledgemntNumber(), acknowledgemntNumber);
         this.sourceIP = sourceIP.getAddress();
@@ -103,48 +103,3 @@ public class STPPacketHeader {
     }
 }
 
-//debug code below here
-//        List<Byte> sourceIPList = new ArrayList<>();
-//        for(int i = 0; i < this.sourceIP.length;i++)
-//            sourceIPList.add(this.sourceIP[i]);
-//
-//        List<Byte> destIPList = new ArrayList<>();
-//        for(int i = 0; i < this.destIP.length;i++)
-//            destIPList.add(this.destIP[i]);
-//
-//        List<Byte> checksumList = new ArrayList<>();
-//        for(int i = 0; i < this.checksum.length;i++)
-//            checksumList.add(this.checksum[i]);
-//
-//        List<Byte> sequenceList = new ArrayList<>();
-//        for(int i = 0; i < this.sequenceNumber.length;i++)
-//            sequenceList.add(this.sequenceNumber[i]);
-//
-//        List<Byte> ackList = new ArrayList<>();
-//        for(int i = 0; i < this.acknowledgemntNumber.length;i++)
-//            ackList.add(this.acknowledgemntNumber[i]);
-//
-//        List<Byte> srcportList = new ArrayList<>();
-//        for(int i = 0; i < this.sourcePort.length;i++)
-//            srcportList.add(this.sourcePort[i]);
-//
-//        List<Byte> dstportList = new ArrayList<>();
-//        for(int i = 0; i < this.destPort.length;i++)
-//            dstportList.add(this.destPort[i]);
-//
-//        Pair<List<Byte>,Integer> checksum1 = new Pair<List<Byte>,Integer>(checksumList,checksum);
-//        Pair<List<Byte>,Integer> sequenceNumber1 = new Pair<List<Byte>,Integer>(sequenceList,sequenceNumber);
-//        Pair<List<Byte>,Integer> acknowledgemntNumber1 = new Pair<List<Byte>,Integer>(ackList, acknowledgemntNumber);
-//        Pair<List<Byte>,InetAddress> sourceIP1 = new Pair<List<Byte>,InetAddress>(sourceIPList, sourceIP);
-//        Pair<List<Byte>,InetAddress> destIP1 = new Pair<List<Byte>,InetAddress>(destIPList, destIP);
-//        Pair<List<Byte>,Integer> sourcePort1 = new Pair<List<Byte>,Integer>(srcportList,sourcePort);
-//        Pair<List<Byte>,Integer> destPort1 = new Pair<List<Byte>,Integer>(dstportList,destPort);
-//        Pair<Byte,Boolean> SYN1 = new Pair<Byte,Boolean>(this.SYN, SYN);
-//        Pair<Byte,Boolean> ACK1 = new Pair<Byte,Boolean>(this.ACK, ACK);
-//        Pair<Byte,Boolean> FIN1 = new Pair<Byte,Boolean>(this.FIN, FIN);
-//        Pair<Byte,Boolean> URG1 = new Pair<Byte,Boolean>(this.URG, URG);
-//
-//        bp = new BytePairs(checksum1,sequenceNumber1,acknowledgemntNumber1,sourceIP1,destIP1,sourcePort1,destPort1,SYN1,ACK1,FIN1,URG1);
-//public BytePairs getBp() {
-//    return bp;
-//}
