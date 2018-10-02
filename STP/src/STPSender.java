@@ -29,10 +29,10 @@ public class STPSender {
     private int MSS;
     private float gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
-    private ArrayBlockingQueue<ReadablePacket> window;
+    private volatile ArrayBlockingQueue<ReadablePacket> window;
     private STPTimer timer = new STPTimer();
     private FileInputStream file;
-    private int windowIndex = 0;
+    private volatile int windowIndex = 0;
     private int windowSize;
     private FileWriter logFile;
     private int estimatedRTT = 500;
@@ -165,41 +165,74 @@ public class STPSender {
     }
 
     private void sendData() {
-        while (true) {
+        //sender thread
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                while (true) {
+                    if (filePackets.size() == windowIndex) {
+                        System.out.println(filePackets.size() + "Break" );
+                        break;
+                    }
+                    //System.out.println("scapacity - " + window.remainingCapacity() + "\t" + "index - " + windowIndex);
+
+                    //if there is room inside our window we will transmit a window size from current index (based off last ACK)
+                    if (window.remainingCapacity() > 0) {
+
+                        packet = new STPPacket(filePackets.get(windowIndex));
+                        try {
+                            window.put(filePackets.get(windowIndex));
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        windowIndex++;
+                        sendPacket(packet);
+                        logWrite(dataIn, 1, 1, "snd", "snd");
+                    }
+                }
+            }
+        }).start();
+
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                while (true) {
+                    if (filePackets.size() == windowIndex) {
+                        break;
+                    }
+                    try {
+                        dataIn.setAddress(receiverIP);
+                        dataIn.setPort(receiverPort);
+                        socket.setSoTimeout(estimatedRTT + 4 *devRTT);
+                        socket.receive(dataIn);
+                        r = new ReadablePacket(dataIn);
+                        if (r.isACK()) {
+                            for (ReadablePacket read : window) {
+                                if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
+                                    window.remove(read);
+                                    logWrite(dataIn, 1, 1, "rcv", "rcv");
+                                    //filePackets.remove(read);
+                                }
+                            }
+                            continue;
+                        }
+                    } catch (SocketTimeoutException e) {
+                        System.out.println("hello");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
+        while(true){
             if (filePackets.size() == windowIndex) {
                 break;
             }
-            //if there is room inside our window we will transmit a window size from current index (based off last ACK)
-            if (window.remainingCapacity() > 0) {
-                packet = new STPPacket(filePackets.get(windowIndex));
-                window.add(filePackets.get(windowIndex));
-                windowIndex++;
-                sendPacket(packet);
-                logWrite(dataIn,1,1,"snd","snd");
-            } else {
-                try {
-                    dataIn.setAddress(receiverIP);
-                    dataIn.setPort(receiverPort);
-                    socket.setSoTimeout(estimatedRTT + 4*devRTT);
-                    socket.receive(dataIn);
-                    r = new ReadablePacket(dataIn);
-                    if (r.isACK()) {
-                        ////
-                        for (ReadablePacket read : window) {
-                            if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
-                                window.remove(read);
-                                logWrite(dataIn,1,1,"rcv","rcv");
-                                //filePackets.remove(read);
-                            }
-                        }
-                        continue;
-                    }
-                } catch (SocketTimeoutException e) {
-                    System.out.println("hello");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -264,13 +297,6 @@ public class STPSender {
         return sum;
     }
 
-    private void transmit() {
-        for (int i = windowIndex; i < windowSize + windowIndex; i++) {
-            packet = new STPPacket(filePackets.get(i));
-            window.add(filePackets.get(i));
-            sendPacket(packet);
-        }
-    }
 
     private void sendPacket(STPPacket p) {
         dataOut = p.getPacket();
@@ -293,12 +319,10 @@ public class STPSender {
     }
 
     public void logWrite(DatagramPacket p, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
-        System.out.println(timer.timePassed());
         float timePassed = timer.timePassed() / 1000;
         String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
                 + sequenceNumber + "\t\t" + (p.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER) + "\t\t"
                 + ackNumber + "\n", timePassed);
-        System.out.println(s);
         try {
             logFile.write(s);
             logFile.flush();
