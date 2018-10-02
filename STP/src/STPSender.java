@@ -175,6 +175,7 @@ public class STPSender {
                 window.add(filePackets.get(windowIndex));
                 windowIndex++;
                 sendPacket(packet);
+                logWrite(dataIn,1,1,"snd","snd");
             } else {
                 try {
                     dataIn.setAddress(receiverIP);
@@ -186,6 +187,7 @@ public class STPSender {
                         for (ReadablePacket read : window) {
                             if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                 window.remove(read);
+                                logWrite(dataIn,1,1,"rcv","rcv");
                                 //filePackets.remove(read);
                             }
                         }
