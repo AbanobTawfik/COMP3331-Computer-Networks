@@ -184,6 +184,7 @@ public class STPSender {
                     socket.receive(dataIn);
                     r = new ReadablePacket(dataIn);
                     if (r.isACK()) {
+                        //
                         for (ReadablePacket read : window) {
                             if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                 window.remove(read);
