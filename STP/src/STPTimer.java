@@ -10,7 +10,7 @@ public class STPTimer extends Thread{
                 millisecondsElapsed = System.currentTimeMillis() - timeStarted;
                 //System.out.println("time elapsed - " + millisecondsElapsed/1000);
                 try{
-                    Thread.sleep(10);
+                    Thread.sleep(100);
                 }catch(Exception e){
                     e.printStackTrace();
                 }

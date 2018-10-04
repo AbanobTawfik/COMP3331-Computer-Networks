@@ -221,9 +221,11 @@ public class STPReceiver {
 
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status){
         float timePassed = timer.timePassed()/1000;
-        String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
-                  + sequenceNumber + "\t\t" + length + "\t\t"
-                  + ackNumber + "\n",timePassed);
+        String s = String.format("%-20s" + "%-10s" + "%-10s + %-10s" + "%-10s" + "%-10s\n", sndOrReceive,
+                                    timePassed," ",status,sequenceNumber,length,ackNumber,timePassed);
+        //String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
+        //          + sequenceNumber + "\t\t" + length + "\t\t"
+         //         + ackNumber + "\n",timePassed);
         try {
             logFile.write(s);
             logFile.flush();

@@ -33,7 +33,7 @@ public class STPSender {
     private float gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
     private volatile ArrayBlockingQueue<ReadablePacket> window;
-    private volatile ArrayBlockingQueue<Pair<Integer,ReadablePacket>> retransmissions;
+    private volatile ArrayBlockingQueue<Pair<Integer, ReadablePacket>> retransmissions;
     private STPTimer timer = new STPTimer();
     private FileInputStream file;
     private volatile int windowIndex = 0;
@@ -41,11 +41,10 @@ public class STPSender {
     private FileWriter logFile;
     private int estimatedRTT = 500;
     private int devRTT = 250;
-    private boolean flag;
 
     public STPSender(String args[]) {
         try {
-            this.IP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
+            this.IP = InetAddress.getByName(InetAddress.getLocalHost().getCanonicalHostName());
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -88,6 +87,19 @@ public class STPSender {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        try {
+            String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", "snd/rcv", "time",
+                    "type", "sequence", "payload size", "ack", "RTT", "window size");
+            logFile.write(s);
+            logFile.flush();
+            s = "------------------------------------------------------------------------------------------------------------------\n";
+            logFile.write(s);
+            logFile.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(sequenceNumber);
     }
 
     public void operate() {
@@ -135,11 +147,11 @@ public class STPSender {
 
     private void handshake() {
         SYN = true;
-        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+        header = new STPPacketHeader(0, filePackets.get(0).getSequenceNumber(), 0, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-        logWrite(packet.getPacket(), sequenceNumber, 0, "snd", "S");
+        logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S");
         //now we want for SYN ACK back
         while (true) {
             try {
@@ -150,7 +162,8 @@ public class STPSender {
                 r = new ReadablePacket(dataIn);
                 if (r.isSYN() && r.isACK()) {
                     ACK = true;
-                    logWrite(dataIn, r.getAcknowledgemntNumber(), r.getSequenceNumber(), "rcv", "SA");
+                    ackNumber = r.getSequenceNumber();
+                    logWrite(0, r.getSequenceNumber(), filePackets.get(0).getSequenceNumber() + 1, "rcv", "SA");
                     break;
                 }
             } catch (SocketTimeoutException e) {
@@ -159,7 +172,7 @@ public class STPSender {
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
-                logWrite(packet.getPacket(), sequenceNumber, ackNumber, "snd", "S");
+                logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber, "snd", "S");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -170,7 +183,7 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-        logWrite(packet.getPacket(), sequenceNumber, ackNumber, "snd", "A");
+        logWrite(0, sequenceNumber, ackNumber, "snd", "A");
         r.display();
     }
 
@@ -186,6 +199,18 @@ public class STPSender {
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
+                        if (retransmissions.size() > 0) {
+                            try {
+                                window.put(retransmissions.poll().getValue());
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            sendTime = (int) System.currentTimeMillis();
+                            sendPacket(packet);
+                            logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd/RXT", "snd");
+                            continue;
+
+                        }
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
@@ -193,9 +218,10 @@ public class STPSender {
                             e.printStackTrace();
                         }
                         windowIndex++;
-                        logWrite(dataIn, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd", "snd");
                         sendTime = (int) System.currentTimeMillis();
                         sendPacket(packet);
+                        logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd", "snd");
+
                     }
                 }
             }
@@ -205,6 +231,11 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
+                    try {
+                        Thread.sleep(20);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     if (filePackets.size() == windowIndex) {
                         break;
                     }
@@ -220,18 +251,23 @@ public class STPSender {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
-                                    logWrite(dataIn, r.getAcknowledgemntNumber(), r.getSequenceNumber(), "rcv", "rcv");
+                                    logWrite(0, ackNumber, r.getAcknowledgemntNumber() + 1, "rcv", "rcv");
                                     //filePackets.remove(read);
                                 }
                             }
                             continue;
+                        } else {
+                            ReadablePacket retransmit = getNACKPacket(r);
+                            int index = packetIndex(retransmit);
+                            retransmissions.add(new Pair<Integer, ReadablePacket>(index, retransmit));
+
                         }
                     } catch (SocketTimeoutException e) {
                         //if socket times out means the first packet in window was dropped so re-transmit
                         try {
                             ReadablePacket retransmit = window.take();
                             int index = packetIndex(retransmit);
-                            retransmissions.add(new Pair<Integer,ReadablePacket>(index,retransmit));
+                            retransmissions.add(new Pair<Integer, ReadablePacket>(index, retransmit));
                         } catch (InterruptedException e1) {
                             e1.printStackTrace();
                         }
@@ -249,7 +285,7 @@ public class STPSender {
             }
             try {
 
-                Thread.sleep(10);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -329,19 +365,10 @@ public class STPSender {
     }
 
 
-    public void setTimeOut() {
-        int timeout = estimatedRTT + 4 * devRTT;
-        try {
-            socket.setSoTimeout(timeout);
-        } catch (SocketException e) {
-        }
-    }
-
-    public void logWrite(DatagramPacket p, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
+    public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
         float timePassed = timer.timePassed() / 1000;
-        String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
-                + sequenceNumber + "\t\t" + (p.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER) + "\t\t"
-                + ackNumber + "\t\t" + estimatedRTT +"\t\t\t" + window.size() + "\n", timePassed);
+        String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", sndOrReceive
+                , timePassed, status, sequenceNumber, length, ackNumber, estimatedRTT, window.size());
         try {
             logFile.write(s);
             logFile.flush();
@@ -352,7 +379,16 @@ public class STPSender {
     }
 
 
-    public int packetIndex(ReadablePacket r){
+    public int packetIndex(ReadablePacket r) {
         return filePackets.indexOf(r);
+    }
+
+    public ReadablePacket getNACKPacket(ReadablePacket r) {
+        for (ReadablePacket read : filePackets) {
+            if (read.getSequenceNumber() == r.getAcknowledgemntNumber()) {
+                return read;
+            }
+        }
+        return null;
     }
 }
