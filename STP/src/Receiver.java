@@ -1,3 +1,6 @@
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 public class Receiver {
     public static void main(String args[]){
         if(args.length != 2){
