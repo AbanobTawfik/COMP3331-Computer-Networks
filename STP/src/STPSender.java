@@ -16,7 +16,7 @@ public class STPSender {
     private DatagramPacket dataIn = new DatagramPacket(new byte[1000024], 1000024);
     private DatagramPacket dataOut = new DatagramPacket(new byte[1000024], 1000024);
     //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
-    private int sequenceNumber = new Random().nextInt(1147483648);
+    private int sequenceNumber = 0;
     private int ackNumber;
     private STPPacketHeader header;
     private STPPacket packet;
@@ -24,7 +24,7 @@ public class STPSender {
     private boolean SYN = false;
     private boolean ACK = false;
     private boolean FIN = false;
-    private boolean URG = false;
+    private boolean DUP = false;
     private InetAddress receiverIP;
     private int receiverPort;
     private Unreliability PLD;
@@ -41,6 +41,7 @@ public class STPSender {
     private FileWriter logFile;
     private int estimatedRTT = 500;
     private int devRTT = 250;
+    private PriorityQueue<Integer> dupAcks = new PriorityQueue<Integer>(3);
 
     public STPSender(String args[]) {
         try {
@@ -136,7 +137,7 @@ public class STPSender {
                 }
                 //now we want to store all these payloads into packet
                 header = new STPPacketHeader(checksum(packetPayload), sequenceNumber, 0, IP,
-                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 sequenceNumber += MSS;
                 packet = new STPPacket(header, packetPayload);
                 r = new ReadablePacket(packet.getPacket());
@@ -148,7 +149,7 @@ public class STPSender {
     private void handshake() {
         SYN = true;
         header = new STPPacketHeader(0, filePackets.get(0).getSequenceNumber(), 0, IP,
-                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
         logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S");
@@ -163,16 +164,16 @@ public class STPSender {
                 if (r.isSYN() && r.isACK()) {
                     ACK = true;
                     ackNumber = r.getSequenceNumber();
-                    logWrite(0, r.getSequenceNumber(), filePackets.get(0).getSequenceNumber() + 1, "rcv", "SA");
+                    logWrite(0, r.getSequenceNumber(), 1, "rcv", "SA");
                     break;
                 }
             } catch (SocketTimeoutException e) {
                 SYN = true;
                 header = new STPPacketHeader(0, sequenceNumber, 0, IP,
-                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                        receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
-                logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber, "snd", "S");
+                logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -180,10 +181,10 @@ public class STPSender {
         }
         //end handshake with the ACK
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
-                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-        logWrite(0, sequenceNumber, ackNumber, "snd", "A");
+        logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber + 1, "snd", "A");
         r.display();
     }
 
@@ -207,7 +208,7 @@ public class STPSender {
                             }
                             sendTime = (int) System.currentTimeMillis();
                             sendPacket(packet);
-                            logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd/RXT", "snd");
+                            logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd/RXT", "D");
                             continue;
 
                         }
@@ -220,7 +221,7 @@ public class STPSender {
                         windowIndex++;
                         sendTime = (int) System.currentTimeMillis();
                         sendPacket(packet);
-                        logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd", "snd");
+                        logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd", "D");
 
                     }
                 }
@@ -231,11 +232,6 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
-                    try {
-                        Thread.sleep(20);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     if (filePackets.size() == windowIndex) {
                         break;
                     }
@@ -251,7 +247,7 @@ public class STPSender {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
-                                    logWrite(0, ackNumber, r.getAcknowledgemntNumber() + 1, "rcv", "rcv");
+                                    logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A");
                                     //filePackets.remove(read);
                                 }
                             }
@@ -295,10 +291,10 @@ public class STPSender {
     private void terminate() {
         //send out the FIN
         FIN = true;
-        URG = false;
+        DUP = false;
         ACK = false;
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
-                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
         //now wait for the FIN ACK
@@ -329,7 +325,7 @@ public class STPSender {
         FIN = true;
         ACK = true;
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
-                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, URG);
+                receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
     }

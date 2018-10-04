@@ -1,6 +1,5 @@
 import java.net.*;
 import java.io.*;
-import java.nio.file.Path;
 import java.util.*;
 
 public class STPReceiver {
@@ -15,7 +14,7 @@ public class STPReceiver {
     private DatagramPacket dataIn = new DatagramPacket(new byte[1000024], 1000024);
     private DatagramPacket dataOut = new DatagramPacket(new byte[1000024], 1000024);
     //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
-    private int sequenceNumber = new Random().nextInt(1147483648);
+    private int sequenceNumber = 0;
     private int ackNumber;
     private STPPacketHeader header;
     private STPPacket packet;
@@ -23,7 +22,7 @@ public class STPReceiver {
     private boolean SYN = false;
     private boolean ACK = false;
     private boolean FIN = false;
-    private boolean URG = false;
+    private boolean DUP = false;
     private ArrayList<ReadablePacket> payloads = new ArrayList<ReadablePacket>();
     private OutputStream pdfFile;
     private int payloadSize;
@@ -88,7 +87,7 @@ public class STPReceiver {
         //add 1 for SYN bit
         ackNumber = r.getSequenceNumber() + 1;
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
-                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         logWrite(0,sequenceNumber,ackNumber,"snd","SA");
         sendPacket(packet);
@@ -136,7 +135,7 @@ public class STPReceiver {
             if (r.isFIN())
                 return;
             header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
-                    r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+                    r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
             packet = new STPPacket(this.header, new byte[0]);
             sendPacket(packet);
         }
@@ -145,18 +144,18 @@ public class STPReceiver {
     private void terminate() {
         //4 way handshake closure, since the server will initiate the close
         //first send back the FINACK for the servers FIN
-        URG = false;
+        DUP = false;
         FIN = true;
         ACK = true;
         //last packet to send back fin will be R since the while loop terminates
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
-                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
         sendPacket(packet);
         //now we want to send back our FIN to initiate our side of the closure
         ACK = false;
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
-                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, URG);
+                r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
         sendPacket(packet);
         //now we want to wait for our ack from the server

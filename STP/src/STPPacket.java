@@ -9,13 +9,13 @@ public class STPPacket {
 
     public STPPacket(ReadablePacket r){
         this.header = new STPPacketHeader(r.getChecksum(),r.getSequenceNumber(),r.getAcknowledgemntNumber(),
-                r.getSourceIP(),r.getDestIP(),r.getSourcePort(),r.getDestPort(),r.isSYN(),r.isACK(),r.isFIN(),r.isURG());
+                r.getSourceIP(),r.getDestIP(),r.getSourcePort(),r.getDestPort(),r.isSYN(),r.isACK(),r.isFIN(),r.isDUP());
         this.payload = r.getPayload();
         ArrayList<Byte> list = new ArrayList<Byte>();
         list.add(header.isACK());
         list.add(header.isSYN());
         list.add(header.isFIN());
-        list.add(header.isURG());
+        list.add(header.isDUP());
         addAllBytes(list,header.getSequenceNumber());
         addAllBytes(list,header.getChecksum());
         addAllBytes(list,header.getAcknowledgemntNumber());
@@ -35,7 +35,7 @@ public class STPPacket {
         list.add(header.isACK());
         list.add(header.isSYN());
         list.add(header.isFIN());
-        list.add(header.isURG());
+        list.add(header.isDUP());
         addAllBytes(list,header.getSequenceNumber());
         addAllBytes(list,header.getChecksum());
         addAllBytes(list,header.getAcknowledgemntNumber());

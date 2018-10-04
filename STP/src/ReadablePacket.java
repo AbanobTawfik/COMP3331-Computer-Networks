@@ -6,7 +6,7 @@ public class ReadablePacket {
     private boolean SYN;
     private boolean ACK;
     private boolean FIN;
-    private boolean URG;
+    private boolean DUP;
     private int checksum;
     private int sequenceNumber;
     private int acknowledgemntNumber;
@@ -29,10 +29,10 @@ public class ReadablePacket {
             this.FIN = true;
         else
             this.FIN = false;
-        if (srcPacket.getData()[HeaderValues.URG_POSITION_IN_HEADER] == HeaderValues.TRUE_HEADER)
-            this.URG = true;
+        if (srcPacket.getData()[HeaderValues.DUP_POSITION_IN_HEADER] == HeaderValues.TRUE_HEADER)
+            this.DUP = true;
         else
-            this.URG = false;
+            this.DUP = false;
         this.checksum = extractFromArray(srcPacket.getData(), HeaderValues.CHECKSUM_POSITION_IN_HEADER);
         this.sequenceNumber = extractFromArray(srcPacket.getData(), HeaderValues.SEQ_POSITION_IN_HEADER);
         this.acknowledgemntNumber = extractFromArray(srcPacket.getData(), HeaderValues.ACKNUM_POSITION_IN_HEADER);
@@ -75,12 +75,12 @@ public class ReadablePacket {
         this.FIN = FIN;
     }
 
-    public boolean isURG() {
-        return URG;
+    public boolean isDUP() {
+        return DUP;
     }
 
-    public void setURG(boolean URG) {
-        this.URG = URG;
+    public void setDUP(boolean DUP) {
+        this.DUP = DUP;
     }
 
     public int getChecksum() {
@@ -192,7 +192,7 @@ public class ReadablePacket {
         System.out.println("==================================PACKET INFO==================================");
         System.out.println("SYN - " + this.SYN);
         System.out.println("ACK - " + this.ACK);
-        System.out.println("URG - " + this.URG);
+        System.out.println("DUP - " + this.DUP);
         System.out.println("FIN - " + this.FIN);
         System.out.println("checksum - " + this.checksum);
         System.out.println("ACKNumber -  " + this.acknowledgemntNumber);

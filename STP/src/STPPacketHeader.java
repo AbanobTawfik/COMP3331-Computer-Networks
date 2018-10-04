@@ -1,14 +1,10 @@
-import javafx.util.Pair;
-
-import java.io.BufferedReader;
 import java.net.*;
-import java.nio.ByteBuffer;
-import java.util.*;
+
 public class STPPacketHeader {
     private byte SYN;
     private byte ACK;
     private byte FIN;
-    private byte URG;
+    private byte DUP;
     private byte[] checksum;
     private byte[] sequenceNumber;
     private byte[] acknowledgemntNumber;
@@ -19,7 +15,7 @@ public class STPPacketHeader {
 //    private BytePairs bp;
 
     public STPPacketHeader(Integer checksum, Integer sequenceNumber, Integer acknowledgemntNumber, InetAddress sourceIP,
-                           InetAddress destIP, Integer sourcePort, Integer destPort,Boolean SYN, Boolean ACK, Boolean FIN, Boolean URG) {
+                           InetAddress destIP, Integer sourcePort, Integer destPort,Boolean SYN, Boolean ACK, Boolean FIN, Boolean DUP) {
         this.checksum = assignIntegerToByte(this.getChecksum(), checksum);
         this.sequenceNumber = assignIntegerToByte(this.getSequenceNumber(),sequenceNumber);
         this.acknowledgemntNumber = assignIntegerToByte(this.getAcknowledgemntNumber(), acknowledgemntNumber);
@@ -40,10 +36,10 @@ public class STPPacketHeader {
             this.FIN = HeaderValues.TRUE_HEADER;
         else
             this.FIN = HeaderValues.FALSE_HEADER;
-        if(URG == true)
-            this.URG = HeaderValues.TRUE_HEADER;
+        if(DUP == true)
+            this.DUP = HeaderValues.TRUE_HEADER;
         else
-            this.URG = HeaderValues.FALSE_HEADER;
+            this.DUP = HeaderValues.FALSE_HEADER;
     }
 
     public byte[] getChecksum() {
@@ -86,8 +82,8 @@ public class STPPacketHeader {
         return FIN;
     }
 
-    public byte isURG() {
-        return URG;
+    public byte isDUP() {
+        return DUP;
     }
 
 
