@@ -1,6 +1,7 @@
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.BufferOverflowException;
 
 public class ReadablePacket {
     private boolean SYN;
@@ -166,6 +167,13 @@ public class ReadablePacket {
             System.out.println(HeaderValues.b.position());
             System.out.println(HeaderValues.b.capacity());
             System.out.println("----------------------------------");
+        }catch(BufferOverflowException e1){
+            System.out.println("---------------------------------");
+            System.out.println(HeaderValues.b.limit());
+            System.out.println(HeaderValues.b.remaining());
+            System.out.println(HeaderValues.b.position());
+            System.out.println(HeaderValues.b.capacity());
+            System.out.println("---------------------------------");
         }
         HeaderValues.b.position(0);
         int val = new Integer(HeaderValues.b.getInt());
