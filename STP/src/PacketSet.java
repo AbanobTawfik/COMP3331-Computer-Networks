@@ -56,6 +56,13 @@ public class PacketSet {
         return set;
     }
 
+    public boolean contains(ReadablePacket r){
+        for(ReadablePacket r1:set){
+            if(r1.getSequenceNumber() == r.getSequenceNumber())
+                return true;
+        }
+        return false;
+    }
 
     public void sortSet(){
         set.sort(new Comparator<ReadablePacket>(){

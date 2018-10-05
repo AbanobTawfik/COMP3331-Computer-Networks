@@ -72,8 +72,11 @@ public class STPSender {
         this.MSS = Integer.parseInt(args[4]);
         this.gamma = Float.parseFloat(args[5]);
         this.windowSize = Math.floorDiv(MWS, MSS);
+        if(windowSize <= 1){
+            this.windowSize = 1;
+            this.MSS = this.MWS;
+        }
         window = new ArrayBlockingQueue<>(windowSize);
-        retransmissions = new ArrayBlockingQueue<>(windowSize);
         float pDrop = Float.parseFloat(args[6]);
         float pDuplicate = Float.parseFloat(args[7]);
         float pCorrupt = Float.parseFloat(args[8]);
@@ -200,18 +203,6 @@ public class STPSender {
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
-                        if (retransmissions.size() > 0) {
-                            try {
-                                Pair<Integer,ReadablePacket> retransmit= retransmissions.take();
-                                window.put(retransmit.getValue());
-                                sendTime = (int) System.currentTimeMillis();
-                                sendPacket(packet);
-                                logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(retransmit.getKey()).getSequenceNumber(), ackNumber, "snd/RXT", "D",calculateRTTWithNoChange());
-                                continue;
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
@@ -254,30 +245,32 @@ public class STPSender {
                             }
                             continue;
                         } else {
-                            ReadablePacket retransmit = getNACKPacket(r);
-                            int index = packetIndex(retransmit);
-                            retransmissions.put(new Pair<Integer, ReadablePacket>(index, retransmit));
+
+                            try {
+                                for(ReadablePacket read : window){
+                                    if(r.getAcknowledgemntNumber() == read.getSequenceNumber()){
+                                        window.remove(read);
+                                    }
+                                }
+                                ReadablePacket retransmit = r;
+                                window.put(retransmit);
+                                logWrite(MSS,retransmit.getSequenceNumber(),retransmit.getAcknowledgemntNumber(),"snd/RXT","D",calculateRTTWithNoChange());
+                            } catch (InterruptedException e1) {
+                                e1.printStackTrace();
+                            }
+                            System.out.println("time-out: NAK");
 
                         }
                     } catch (SocketTimeoutException e) {
-                        //if socket times out means the first packet in window was dropped so re-transmit
                         try {
                             ReadablePacket retransmit = window.take();
-                            System.out.println("========retransmit for " + retransmit.getSequenceNumber() + " ====================");
-                            int index = packetIndex(retransmit);
-
-                            retransmissions.put(new Pair<Integer, ReadablePacket>(index, retransmit));
-                            for(ReadablePacket ree : window){
-                                System.out.println(ree.getSequenceNumber());
-                            }
-                            System.out.println("=========================================================================");
+                            window.put(retransmit);
+                            logWrite(MSS,retransmit.getSequenceNumber(),retransmit.getAcknowledgemntNumber(),"snd/RXT","D",calculateRTTWithNoChange());
                         } catch (InterruptedException e1) {
                             e1.printStackTrace();
                         }
                         System.out.println("time-out: Retransmission");
                     } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }

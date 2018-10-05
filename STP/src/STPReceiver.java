@@ -125,12 +125,21 @@ public class STPReceiver {
                 ACK = false;
             else
                 ACK = true;
+            if(payloads.contains(r)){
+                header = new STPPacketHeader(0, sequenceNumber, r.getSequenceNumber(), IP,
+                        r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
+                packet = new STPPacket(this.header, new byte[0]);
+                sendPacket(packet);
+                continue;
+            }
+
             buffer.addConditionally(payloads);
             if (r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
                 payloads.add(new ReadablePacket(dataIn));
             }
+
             ackNumber = payloads.last();
             if (r.isFIN())
                 return;
