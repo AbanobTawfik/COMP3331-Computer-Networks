@@ -147,7 +147,7 @@ public class ReadablePacket {
         this.payload = payload;
     }
 
-    public int readHeaderValues(byte[] src) {
+    private int readHeaderValues(byte[] src) {
         HeaderValues.b.clear();
         try {
             HeaderValues.b.put(src);
@@ -158,15 +158,15 @@ public class ReadablePacket {
         HeaderValues.b.position(0);
         int val;
         try {
-            val = new Integer(HeaderValues.b.getInt());
+            val = HeaderValues.b.getInt();
         }catch (Exception e){
             HeaderValues.b.position(0);
-            val = new Integer(HeaderValues.b.getInt());
+            val = HeaderValues.b.getInt();
         }
         return val;
     }
 
-    public int extractFromArray(byte[] src, int start) {
+    private int extractFromArray(byte[] src, int start) {
         int length = HeaderValues.DATA_LENGTH;
         byte[] ret = new byte[length];
         int count = 0;
@@ -177,7 +177,7 @@ public class ReadablePacket {
         return readHeaderValues(ret);
     }
 
-    public byte[] extractPayLoad(byte[] src) {
+    private byte[] extractPayLoad(byte[] src) {
         int payloadlength = src.length - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
         byte[] ret = new byte[payloadlength];
         int count = 0;
@@ -188,7 +188,7 @@ public class ReadablePacket {
         return ret;
     }
 
-    public InetAddress getInetAddress(byte[] src, int start) throws UnknownHostException {
+    private InetAddress getInetAddress(byte[] src, int start) throws UnknownHostException {
         int length = HeaderValues.DATA_LENGTH;
         byte[] ret = new byte[length];
         int count = 0;
