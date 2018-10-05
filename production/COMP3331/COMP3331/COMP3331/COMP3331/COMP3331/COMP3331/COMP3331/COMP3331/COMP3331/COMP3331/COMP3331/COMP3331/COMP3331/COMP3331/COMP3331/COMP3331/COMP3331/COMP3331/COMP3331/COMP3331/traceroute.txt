@@ -1,0 +1,209 @@
+traceroute for www.columbia.edu
+C:\Users\Abs Tawfik>tracert www.columbia.edu
+
+Tracing route to www.wwwr53.cc.columbia.edu [128.59.105.24]
+over a maximum of 30 hops:
+
+  1    <1 ms    <1 ms    <1 ms  192.168.0.1
+  2    27 ms    31 ms    12 ms  10.243.128.1
+  3     8 ms    11 ms    15 ms  58.160.249.1
+  4    10 ms    21 ms     8 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    13 ms    24 ms    11 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    11 ms    12 ms    12 ms  bundle-ether1.oxf-gw11.sydney.telstra.net [203.50.6.93]
+  7    11 ms    17 ms    11 ms  bundle-ether1.sydo-core03.sydney.reach.com [203.50.13.98]
+  8   199 ms   197 ms   196 ms  i-73.paix-core02.telstraglobal.net [202.84.247.45]
+  9   195 ms   205 ms   199 ms  i-92.paix02.telstraglobal.net [202.84.247.41]
+ 10   196 ms   196 ms   231 ms  liberty_global-peer.eqnx03.pr.telstraglobal.net [134.159.63.85]
+ 11   196 ms   203 ms   202 ms  be2016.ccr22.sfo01.atlas.cogentco.com [154.54.0.177]
+ 12   211 ms   212 ms   219 ms  be3110.ccr21.slc01.atlas.cogentco.com [154.54.44.142]
+ 13   223 ms   222 ms   223 ms  be3038.ccr22.den01.atlas.cogentco.com [154.54.42.98]
+ 14   233 ms   234 ms   235 ms  be3036.ccr22.mci01.atlas.cogentco.com [154.54.31.90]
+ 15   246 ms   253 ms   244 ms  be2832.ccr42.ord01.atlas.cogentco.com [154.54.44.170]
+ 16   252 ms   254 ms   253 ms  be2718.ccr22.cle04.atlas.cogentco.com [154.54.7.130]
+ 17   265 ms   265 ms   264 ms  be2890.ccr42.jfk02.atlas.cogentco.com [154.54.82.246]
+ 18   265 ms   264 ms   265 ms  be2897.rcr24.jfk01.atlas.cogentco.com [154.54.84.214]
+ 19   299 ms   317 ms   264 ms  38.122.8.210
+ 20   265 ms   265 ms   265 ms  cc-core-1-x-nyser32-gw-1.net.columbia.edu [128.59.255.5]
+ 21   269 ms   269 ms   265 ms  cc-conc-1-x-cc-core-1.net.columbia.edu [128.59.255.210]
+ 22   264 ms   264 ms   265 ms  columbia.university [128.59.105.24]
+
+Trace complete.
+
+traceroute for www.ucla.edu
+C:\Users\Abs Tawfik>tracert www.ucla.edu
+
+Tracing route to gateway.lb.it.ucla.edu [164.67.228.152]
+over a maximum of 30 hops:
+
+  1    <1 ms    <1 ms    <1 ms  192.168.0.1
+  2    16 ms    11 ms    10 ms  10.243.128.1
+  3    10 ms    14 ms     9 ms  58.160.249.1
+  4    10 ms    19 ms    10 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    13 ms    22 ms    21 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    12 ms    14 ms    12 ms  bundle-ether1.oxf-gw11.sydney.telstra.net [203.50.6.93]
+  7    13 ms    19 ms    14 ms  bundle-ether1.sydo-core03.sydney.reach.com [203.50.13.98]
+  8   198 ms   196 ms   211 ms  i-73.paix-core02.telstraglobal.net [202.84.247.45]
+  9   218 ms   199 ms   198 ms  i-92.paix02.telstraglobal.net [202.84.247.41]
+ 10     *        *        *     Request timed out.
+ 11   201 ms   201 ms   200 ms  64.57.21.5
+ 12   201 ms   202 ms   198 ms  dc-svl-agg8--svl-agg4-100ge-#2.cenic.net [137.164.11.31]
+ 13   199 ms   199 ms   198 ms  dc-lax-agg8--svl-agg8--100ge--#2.cenic.net [137.164.11.20]
+ 14   194 ms   192 ms   194 ms  dc-lax-agg6--lax-agg8-100ge-#2.cenic.net [137.164.11.6]
+ 15     *        *        *     Request timed out.
+ 16   198 ms   199 ms   199 ms  bd11f1.anderson--cr00f2.csb1.ucla.net [169.232.4.4]
+ 17   197 ms   203 ms   197 ms  cr00f2.csb1--dr00f2.csb1.ucla.net [169.232.4.53]
+ 18     *        *        *     Request timed out.
+ 19   197 ms   194 ms   194 ms  6513-1vlan134.ais.ucla.edu [164.67.134.252]
+ 20   201 ms   201 ms   198 ms  gateway.lb.it.ucla.edu [164.67.228.152]
+
+Trace complete.
+
+traceroute for www.u-tokyo.ac.jp
+C:\Users\Abs Tawfik>tracert www.u-tokyo.ac.jp
+
+Tracing route to www.u-tokyo.ac.jp [210.152.243.234]
+over a maximum of 30 hops:
+
+  1     1 ms    <1 ms    <1 ms  192.168.0.1
+  2     7 ms     8 ms     9 ms  10.243.128.1
+  3    10 ms    12 ms    15 ms  58.160.249.1
+  4    12 ms    12 ms     9 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    13 ms    12 ms    11 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    11 ms    23 ms    16 ms  bundle-ether1.oxf-gw11.sydney.telstra.net [203.50.6.93]
+  7    16 ms    10 ms     9 ms  bundle-ether1.sydo-core03.sydney.reach.com [203.50.13.98]
+  8   125 ms   126 ms   125 ms  i-0-3-0-1.siko-core04.telstraglobal.net [202.84.138.10]
+  9   139 ms   142 ms   139 ms  i-91.joua01.telstraglobal.net [202.47.216.50]
+ 10     *        *        *     Request timed out.
+ 11   163 ms   161 ms   161 ms  124.83.228.78
+ 12   144 ms   142 ms   155 ms  124.83.252.250
+ 13   144 ms   152 ms   155 ms  158.205.134.26
+ 14     *        *        *     Request timed out.
+ 15     *        *        *     Request timed out.
+ 16     *        *        *     Request timed out.
+ 17     *        *        *     Request timed out.
+ 18     *        *        *     Request timed out.
+ 19     *        *        *     Request timed out.
+ 20     *        *        *     Request timed out.
+ 21     *        *        *     Request timed out.
+ 22     *        *        *     Request timed out.
+ 23     *        *        *     Request timed out.
+ 24     *        *        *     Request timed out.
+ 25     *        *        *     Request timed out.
+ 26     *        *        *     Request timed out.
+ 27     *        *        *     Request timed out.
+ 28     *        *        *     Request timed out.
+ 29     *        *        *     Request timed out.
+ 30     *        *        *     Request timed out.
+
+Trace complete.
+
+traceroute for http://www.lancaster.ac.uk/
+C:\Users\Abs Tawfik>tracert www.lancaster.ac.uk
+
+Tracing route to www.lancaster.ac.uk [148.88.65.80]
+over a maximum of 30 hops:
+
+  1    <1 ms     2 ms     1 ms  192.168.0.1
+  2     7 ms     8 ms    11 ms  10.243.128.1
+  3     8 ms     9 ms    13 ms  58.160.249.1
+  4    27 ms    18 ms    10 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    14 ms    10 ms    11 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    16 ms    11 ms    10 ms  bundle-ether1.oxf-gw11.sydney.telstra.net [203.50.6.93]
+  7    45 ms    20 ms    11 ms  bundle-ether1.sydo-core03.sydney.reach.com [203.50.13.98]
+  8     9 ms     9 ms    12 ms  i-0-1-0-16.sydo-core04.bi.telstraglobal.net [202.84.222.58]
+  9   158 ms   157 ms   198 ms  i-84.eqnx-core02.telstraglobal.net [202.84.247.37]
+ 10   224 ms   221 ms   224 ms  i-14808.ny8a-core01.telstraglobal.net [202.40.148.98]
+ 11   328 ms     *      331 ms  i-10448.ulco-core02.telstraglobal.net [202.84.249.173]
+ 12   333 ms   328 ms   332 ms  i-91.ulco01.telstraglobal.net [202.40.148.34]
+ 13     *        *        *     Request timed out.
+ 14   286 ms   288 ms   323 ms  ae23.londhx-sbr1.ja.net [146.97.35.165]
+ 15   285 ms   289 ms   286 ms  ae29.londpg-sbr2.ja.net [146.97.33.2]
+ 16   342 ms   335 ms   333 ms  ae31.erdiss-sbr2.ja.net [146.97.33.22]
+ 17   293 ms   292 ms   295 ms  ae29.manckh-sbr2.ja.net [146.97.33.42]
+ 18   346 ms   344 ms   344 ms  ae24.lanclu-rbr1.ja.net [146.97.38.58]
+ 19     *        *        *     Request timed out.
+ 20   341 ms   343 ms   342 ms  ismx-issrx.rtr.lancs.ac.uk [148.88.255.17]
+ 21   437 ms   448 ms   386 ms  dc.iss.srv.rtrcloud.lancs.ac.uk [148.88.253.3]
+ 22   296 ms   328 ms   300 ms  www.lancs.ac.uk [148.88.65.80]
+
+Trace complete.
+
+Traceroute from singapore speed test -> local host
+
+traceroute to 61.9.194.49 (61.9.194.49), 30 hops max, 60 byte packets
+ 1  ge2-8.r01.sin01.ne.com.sg (202.150.221.169)  0.145 ms  0.166 ms  0.181 ms
+ 2  gi0-0-0-5.ccr21.sin01.atlas.cogentco.com (154.18.2.1)  0.801 ms  0.838 ms  0.896 ms
+ 3  be3406.ccr41.lax04.atlas.cogentco.com (154.54.84.21)  173.196 ms  173.071 ms  173.309 ms
+ 4  be3360.ccr42.lax01.atlas.cogentco.com (154.54.25.149)  176.719 ms be3271.ccr41.lax01.atlas.cogentco.com (154.54.42.101)  172.956 ms be3360.ccr42.lax01.atlas.cogentco.com (154.54.25.149)  173.098 ms
+ 5  be3359.ccr41.lax05.atlas.cogentco.com (154.54.3.70)  172.971 ms  176.723 ms  176.764 ms
+ 6  reach.lax05.atlas.cogentco.com (154.54.10.134)  171.760 ms  174.599 ms  174.454 ms
+ 7  i-92.1wlt-core02.telstraglobal.net (202.84.253.81)  175.899 ms  170.832 ms  175.906 ms
+ 8  i-46.sydo-core04.telstraglobal.net (202.84.136.210)  201.062 ms  200.384 ms  201.428 ms
+ 9  bundle-ether3.oxf-gw10.sydney.telstra.net (203.50.13.93)  204.071 ms  199.727 ms  201.445 ms
+10  bundle-ether2.oxf-gw11.sydney.telstra.net (203.50.6.95)  200.335 ms  204.499 ms  200.329 ms
+11  bundle-ether1.chw-core10.sydney.telstra.net (203.50.6.92)  200.576 ms  205.065 ms  204.862 ms
+12  bundle-ether1.chw-edge901.sydney.telstra.net (203.50.11.99)  199.837 ms  204.788 ms  199.793 ms
+13  * * *
+14  * * *
+15  * * *
+16  * * *
+17  * * *
+18  * * *
+19  * * *
+20  * * *
+21  * * *
+22  * * *
+23  * * 203.50.12.109 (203.50.12.109)  201.084 ms !X
+Traceroute Completed.
+
+traceroute from local host -> singapore speed test
+C:\Users\Abs Tawfik>tracert 202.150.221.170
+
+Tracing route to 202-150-221-170.rev.ne.com.sg [202.150.221.170]
+over a maximum of 30 hops:
+
+  1    <1 ms    <1 ms    <1 ms  192.168.0.1
+  2    12 ms     9 ms    22 ms  10.243.128.1
+  3    21 ms    11 ms    10 ms  58.160.249.1
+  4    17 ms    12 ms    27 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    12 ms    13 ms    10 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    15 ms    10 ms    12 ms  bundle-ether1.oxf-gw11.sydney.telstra.net [203.50.6.93]
+  7    12 ms     9 ms    11 ms  bundle-ether2.oxf-gw10.sydney.telstra.net [203.50.6.94]
+  8    15 ms    12 ms    19 ms  bundle-ether1.sydo-core04.sydney.reach.com [203.50.13.94]
+  9    16 ms    15 ms    12 ms  i-0-1-0-48.sydo-core03.bi.telstraglobal.net [202.84.222.65]
+ 10    63 ms    69 ms    66 ms  i-15303.pthp-core02.telstraglobal.net [202.84.140.33]
+ 11   106 ms   108 ms   102 ms  i-15053.sgpl-core02.telstraglobal.net [202.84.140.38]
+ 12   105 ms   106 ms   104 ms  i-92.sgpl01.telstraglobal.net [202.84.224.194]
+ 13   103 ms   107 ms   104 ms  unknown.telstraglobal.net [210.176.138.174]
+ 14   110 ms   106 ms   109 ms  203.118.15.133
+ 15   103 ms   105 ms   102 ms  203.118.2.26
+ 16   118 ms   104 ms   101 ms  an-atl-int11.starhub.net.sg [203.118.15.82]
+ 17   104 ms   105 ms   101 ms  203.117.6.210
+ 18   106 ms   103 ms   103 ms  202-150-221-170.rev.ne.com.sg [202.150.221.170]
+
+Trace complete.
+
+traceroute from telstra.net -> local host
+ 1  gigabitethernet3-3.exi1.melbourne.telstra.net (203.50.77.49)  0.361 ms  0.282 ms  0.245 ms
+ 2  bundle-ether3-100.exi-core10.melbourne.telstra.net (203.50.80.1)  2.868 ms  1.673 ms  2.119 ms
+ 3  bundle-ether12.chw-core10.sydney.telstra.net (203.50.11.124)  13.862 ms  14.418 ms  14.861 ms
+ 4  bundle-ether1.chw-edge901.sydney.telstra.net (203.50.11.99)  13.238 ms  28.659 ms  13.238 ms
+
+Trace complete.
+
+traceroute from local host -> telstra.net
+C:\Users\Abs Tawfik>tracert 203.50.5.178
+
+Tracing route to www.telstra.net [203.50.5.178]
+over a maximum of 30 hops:
+
+  1     1 ms     1 ms    <1 ms  192.168.0.1
+  2    16 ms     9 ms    10 ms  10.243.128.1
+  3    14 ms    10 ms    11 ms  58.160.249.1
+  4    12 ms    13 ms    13 ms  bundle-ether4.chw-edge901.sydney.telstra.net [203.50.12.108]
+  5    17 ms    12 ms    10 ms  bundle-ether13.chw-core10.sydney.telstra.net [203.50.11.98]
+  6    34 ms    24 ms    23 ms  bundle-ether8.exi-core10.melbourne.telstra.net [203.50.11.125]
+  7    28 ms    21 ms    24 ms  gigabitethernet5-0.exi-service1.melbourne.telstra.net [203.50.80.7]
+  8    24 ms    21 ms    41 ms  www.telstra.net [203.50.5.178]
+
+Trace complete.

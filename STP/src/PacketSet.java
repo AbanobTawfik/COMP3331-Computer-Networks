@@ -55,9 +55,9 @@ public class PacketSet {
             @Override
             public int compare(ReadablePacket o1, ReadablePacket o2) {
                 if(o1.getSequenceNumber() < o2.getSequenceNumber())
-                    return 1;
-                if(o1.getSequenceNumber() > o2.getSequenceNumber())
                     return -1;
+                if(o1.getSequenceNumber() > o2.getSequenceNumber())
+                    return 1;
                 return 0;
             }
         });

@@ -89,7 +89,13 @@ public class STPPacketHeader {
 
     public byte[] assignIntegerToByte(byte[] source, Integer integer){
         HeaderValues.b.clear();
-        byte[] original = HeaderValues.b.putInt(integer).array();
+        byte[] original;
+        try{
+            original = HeaderValues.b.putInt(integer).array();
+        }catch (Exception e){
+            HeaderValues.b.clear();
+            original = HeaderValues.b.putInt(integer).array();
+        }
         source = new byte[original.length];
         for(int i = 0; i <original.length; i++){
             source[i] = new Byte(original[i]);

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/production/COMP3331" />
+    <output-test url="file://$MODULE_DIR$/test/COMP3331" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/STP/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/.idea" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/lab 1" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/production" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/STP" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/lab 3" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/lab 2" />
+    </content>
+    <content url="file://$MODULE_DIR$/STP" />
+    <content url="file://$MODULE_DIR$/STP/src" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="src" level="project" />
+  </component>
+</module>

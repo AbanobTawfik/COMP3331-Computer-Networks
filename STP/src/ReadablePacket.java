@@ -1,7 +1,6 @@
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.BufferOverflowException;
 
 public class ReadablePacket {
     private boolean SYN;
@@ -150,33 +149,20 @@ public class ReadablePacket {
 
     public int readHeaderValues(byte[] src) {
         HeaderValues.b.clear();
-        if(HeaderValues.b.capacity() != 4){
-            HeaderValues.b.clear();
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
         try {
-            HeaderValues.b.put(src, 0, 4);
-        }catch(IllegalArgumentException e){
-            System.out.println("----------------------------------");
-            System.out.println(HeaderValues.b.limit());
-            System.out.println(HeaderValues.b.remaining());
-            System.out.println(HeaderValues.b.position());
-            System.out.println(HeaderValues.b.capacity());
-            System.out.println("----------------------------------");
-        }catch(BufferOverflowException e1){
-            System.out.println("---------------------------------");
-            System.out.println(HeaderValues.b.limit());
-            System.out.println(HeaderValues.b.remaining());
-            System.out.println(HeaderValues.b.position());
-            System.out.println(HeaderValues.b.capacity());
-            System.out.println("---------------------------------");
+            HeaderValues.b.put(src);
+        }catch (Exception e){
+            HeaderValues.b.clear();
+            HeaderValues.b.put(src);
         }
         HeaderValues.b.position(0);
-        int val = new Integer(HeaderValues.b.getInt());
+        int val;
+        try {
+            val = new Integer(HeaderValues.b.getInt());
+        }catch (Exception e){
+            HeaderValues.b.position(0);
+            val = new Integer(HeaderValues.b.getInt());
+        }
         return val;
     }
 
