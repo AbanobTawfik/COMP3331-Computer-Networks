@@ -23,7 +23,7 @@ public class STPReceiver {
     private boolean ACK = false;
     private boolean FIN = false;
     private boolean DUP = false;
-    private ArrayList<ReadablePacket> payloads = new ArrayList<ReadablePacket>();
+    private PacketSet payloads = new PacketSet();
     private OutputStream pdfFile;
     private int payloadSize;
     private FileWriter logFile;
@@ -34,7 +34,7 @@ public class STPReceiver {
         this.fileRequested = args[1];
         File dir = new File("created_files");
         dir.mkdir();
-        this.fileRequested = dir.getAbsolutePath() + "/"+ this.fileRequested;
+        this.fileRequested = dir.getAbsolutePath() + "/" + this.fileRequested;
         try {
             this.IP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
         } catch (UnknownHostException e) {
@@ -75,7 +75,7 @@ public class STPReceiver {
             }
             r = new ReadablePacket(dataIn);
             if (r.isSYN()) {
-                logWrite(0,r.getSequenceNumber(),r.getSequenceNumber(),"rcv","S");
+                logWrite(0, r.getSequenceNumber(), r.getSequenceNumber(), "rcv", "S");
                 SYN = true;
                 ACK = true;
             }
@@ -89,7 +89,7 @@ public class STPReceiver {
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
-        logWrite(0,sequenceNumber,ackNumber,"snd","SA");
+        logWrite(0, sequenceNumber, ackNumber, "snd", "SA");
         sendPacket(packet);
         //now we wait for the reply that our reply has been acknowledged
         while (true) {
@@ -105,6 +105,7 @@ public class STPReceiver {
         r.display();
         System.out.println("handshake complete");
     }
+
     private void receiveData() {
         while (!this.FIN) {
             try {
@@ -129,8 +130,7 @@ public class STPReceiver {
             if (r.getSequenceNumber() > ackNumber)
                 buffer.add(new ReadablePacket(dataIn));
             else {
-                if (!payloads.contains(r))
-                    payloads.add(new ReadablePacket(dataIn));
+                payloads.add(new ReadablePacket(dataIn));
             }
             if (r.isFIN())
                 return;
@@ -200,7 +200,7 @@ public class STPReceiver {
     private void writeFile() {
         payloads.remove(payloads.get(payloads.size() - 1));
         try {
-            for (ReadablePacket r : payloads) {
+            for (ReadablePacket r : payloads.getArrayList()) {
                 pdfFile.write(unpaddedPayload(r));
                 pdfFile.flush();
             }
@@ -218,13 +218,13 @@ public class STPReceiver {
         return Arrays.copyOf(r.getPayload(), payloadSize);
     }
 
-    public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status){
-        float timePassed = timer.timePassed()/1000;
+    public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
+        float timePassed = timer.timePassed() / 1000;
         String s = String.format("%-20s" + "%-10s" + "%-10s + %-10s" + "%-10s" + "%-10s\n", sndOrReceive,
-                                    timePassed," ",status,sequenceNumber,length,ackNumber,timePassed);
+                timePassed, " ", status, sequenceNumber, length, ackNumber, timePassed);
         //String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
         //          + sequenceNumber + "\t\t" + length + "\t\t"
-         //         + ackNumber + "\n",timePassed);
+        //         + ackNumber + "\n",timePassed);
         try {
             logFile.write(s);
             logFile.flush();

@@ -30,7 +30,7 @@ public class PacketBuffer {
         return this.maxCapacity - this.buffer.size();
     }
 
-    public void addConditionally(ArrayList<ReadablePacket> src){
+    public void addConditionally(PacketSet src){
         if(src.size() == 0 || buffer.size() == 0)
             return;
         while(src.get(src.size()-1).getSequenceNumber() > peek_sequence_number()){
