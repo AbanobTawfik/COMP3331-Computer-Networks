@@ -16,6 +16,6 @@ public class HeaderValues {
     static final int SRCPRT_POSITION_IN_HEADER = 24;
     static final int DSTPRT_POSITION_IN_HEADER = 28;
     static final int PAYLOAD_POSITION_IN_HEADER = 32;
-    static final ByteBuffer b = ByteBuffer.allocate(4);
+    static  final ByteBuffer b = ByteBuffer.allocate(4);
 
 }

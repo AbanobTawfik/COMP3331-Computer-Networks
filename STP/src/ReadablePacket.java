@@ -149,7 +149,24 @@ public class ReadablePacket {
 
     public int readHeaderValues(byte[] src) {
         HeaderValues.b.clear();
-        HeaderValues.b.put(src);
+        if(HeaderValues.b.capacity() != 4){
+            HeaderValues.b.clear();
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            HeaderValues.b.put(src, 0, 4);
+        }catch(IllegalArgumentException e){
+            System.out.println("----------------------------------");
+            System.out.println(HeaderValues.b.limit());
+            System.out.println(HeaderValues.b.remaining());
+            System.out.println(HeaderValues.b.position());
+            System.out.println(HeaderValues.b.capacity());
+            System.out.println("----------------------------------");
+        }
         HeaderValues.b.position(0);
         int val = new Integer(HeaderValues.b.getInt());
         return val;
