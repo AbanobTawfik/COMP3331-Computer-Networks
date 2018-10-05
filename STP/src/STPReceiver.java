@@ -102,6 +102,7 @@ public class STPReceiver {
             if (r.isACK() && r.isSYN())
                 break;
         }
+        sequenceNumber++;
         r.display();
         System.out.println("handshake complete");
     }
@@ -124,14 +125,13 @@ public class STPReceiver {
                 ACK = false;
             else
                 ACK = true;
-            ackNumber = r.getSequenceNumber(); //+ payloadLength();
-            sequenceNumber++;
             buffer.addConditionally(payloads);
-            if (r.getSequenceNumber() > ackNumber)
+            if (r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
                 payloads.add(new ReadablePacket(dataIn));
             }
+            ackNumber = payloads.last();
             if (r.isFIN())
                 return;
             header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,

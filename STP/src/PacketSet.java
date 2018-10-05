@@ -5,11 +5,11 @@ public class PacketSet {
     private ArrayList<ReadablePacket> set = new ArrayList<ReadablePacket>();
 
     public void add(ReadablePacket r){
-        if(set.contains(r)){
-            return;
-        }else{
-            set.add(r);
+        for(ReadablePacket r1: set){
+            if(r.getSequenceNumber() == r1.getSequenceNumber())
+                return;
         }
+            set.add(r);
         sortSet();
     }
 
@@ -25,6 +25,14 @@ public class PacketSet {
         if(index < 0 || index >= set.size())
             return null;
         return set.get(index);
+    }
+
+    public int last(){
+        if(set.size() == 0)
+            return 0;
+        if(set.size() == 1)
+            return set.get(0).getSequenceNumber();
+        return set.get(set.size()-1).getSequenceNumber();
     }
 
     public ReadablePacket get(ReadablePacket r){
