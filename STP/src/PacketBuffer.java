@@ -38,4 +38,15 @@ public class PacketBuffer {
         }
     }
 
+    public PriorityQueue<ReadablePacket> getBuffer(){
+        return this.buffer;
+    }
+
+    public void display(){
+        int count = 0;
+        for(ReadablePacket r : buffer){
+            System.out.println("packet #" + count + "seq number - " + r.getSequenceNumber());
+            count++;
+        }
+    }
 }

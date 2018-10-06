@@ -28,6 +28,7 @@ public class STPReceiver {
     private int payloadSize;
     private FileWriter logFile;
     private boolean firstDataSizeFlag = false;
+    private int lastPayloadSize;
 
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
@@ -117,7 +118,11 @@ public class STPReceiver {
             r = new ReadablePacket(dataIn);
             if (!firstDataSizeFlag) {
                 payloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+                lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 firstDataSizeFlag = true;
+            }
+            if(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER  != payloadSize) ){
+                lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
             }
             //extract payload
             //drop packet if corrupted data
@@ -133,13 +138,14 @@ public class STPReceiver {
                 continue;
             }
 
-            buffer.addConditionally(payloads);
             if (r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
                 payloads.add(new ReadablePacket(dataIn));
             }
-
+            while((buffer.peek_sequence_number() < payloads.get(payloads.size()-1).getSequenceNumber()) && buffer.peek_sequence_number() != -1 ){
+                payloads.add(buffer.remove());
+            }
             ackNumber = payloads.last();
             if (r.isFIN())
                 return;
@@ -207,10 +213,14 @@ public class STPReceiver {
     }
 
     private void writeFile() {
-        payloads.remove(payloads.get(payloads.size() - 1));
+        System.out.println("-------");
+        System.out.println(payloads.size());
+        System.out.println("-------");
+        if(payloads.size() > 1)
+            payloads.remove(payloads.get(payloads.size() - 1));
         try {
             for (ReadablePacket r : payloads.getArrayList()) {
-                pdfFile.write(unpaddedPayload(r));
+                pdfFile.write(unpaddedPayload(r, r.equals(payloads.get(payloads.size()-1))));
                 pdfFile.flush();
             }
         } catch (IOException e) {
@@ -223,7 +233,9 @@ public class STPReceiver {
         }
     }
 
-    public byte[] unpaddedPayload(ReadablePacket r) {
+    public byte[] unpaddedPayload(ReadablePacket r, boolean last) {
+        if(last)
+            return Arrays.copyOf(r.getPayload(), lastPayloadSize);
         return Arrays.copyOf(r.getPayload(), payloadSize);
     }
 

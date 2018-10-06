@@ -5,6 +5,8 @@ public class PacketSet {
     private ArrayList<ReadablePacket> set = new ArrayList<ReadablePacket>();
 
     public void add(ReadablePacket r){
+        if(r == null)
+            return;
         for(ReadablePacket r1: set){
             if(r.getSequenceNumber() == r1.getSequenceNumber())
                 return;

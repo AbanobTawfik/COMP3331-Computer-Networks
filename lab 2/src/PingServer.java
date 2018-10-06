@@ -40,7 +40,6 @@ public class PingServer
 
             // Print the recieved data.
             printData(request);
-
             // Decide whether to reply, or simulate STPPacket loss.
             if (random.nextDouble() < LOSS_RATE) {
                 System.out.println("   Reply not sent.");
