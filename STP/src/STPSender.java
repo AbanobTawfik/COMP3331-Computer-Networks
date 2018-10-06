@@ -214,8 +214,7 @@ public class STPSender {
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
-                        if(windowIndex >= filePackets.size())
-                            continue;
+
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
