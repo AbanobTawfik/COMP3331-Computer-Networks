@@ -218,7 +218,6 @@ public class STPReceiver {
     }
 
     private void writeFile() {
-        System.out.println("-------");
         System.out.println(payloads.size());
         System.out.println("-------");
         if(payloads.size() > 1)

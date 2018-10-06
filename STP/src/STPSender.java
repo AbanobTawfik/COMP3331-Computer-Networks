@@ -208,16 +208,14 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
-                    if (finalPacket) {
-                        System.out.println(filePackets.size() + "Break");
+                    if (windowIndex > filePackets.size()) {
+                        System.out.println(filePackets.size() + " Break");
                         break;
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
-                        if (windowIndex > filePackets.size()) {
-                            windowIndex--;
-                            finalPacket = true;
-                        }
+                        if(windowIndex >= filePackets.size())
+                            continue;
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
@@ -239,7 +237,7 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
-                    if (finalPacket) {
+                    if (windowIndex > filePackets.size()) {
                         break;
                     }
                     try {
@@ -249,14 +247,11 @@ public class STPSender {
                         socket.receive(dataIn);
                         estimatedRTT = (int) System.currentTimeMillis() - sendTime;
                         r = new ReadablePacket(dataIn);
-                        //System.out.println(r.getAcknowledgemntNumber() + "<=====");
                         if (r.isACK()) {
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
-                                    if (r.getAcknowledgemntNumber() == filePackets.get(filePackets.size()-1).getSequenceNumber())
-                                        finalPacket = true;
                                     logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
                                 }
                             }
