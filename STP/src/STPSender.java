@@ -256,14 +256,13 @@ public class STPSender {
                             }
                             continue;
                         } else {
-
                             try {
                                 for (ReadablePacket read : window) {
                                     if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                         window.remove(read);
                                         window.put(read);
-                                        packet = new STPPacket(read);
-                                        sendPacket(packet);
+                                        //packet = new STPPacket(read);
+                                        //sendPacket(packet);
                                         logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/RXT", "D", calculateRTTWithNoChange());
                                         break;
                                     }
@@ -279,14 +278,14 @@ public class STPSender {
                         try {
                             ReadablePacket retransmit = window.take();
                             window.put(retransmit);
-                            packet = new STPPacket(retransmit);
-                            sendPacket(packet);
-                            logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
+//                            packet = new STPPacket(retransmit);
+//                            sendPacket(packet);
+//                            logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
                             System.out.println("time-out: Retransmission -- " + retransmit.getSequenceNumber());
-                            for(ReadablePacket p : window){
-                                System.out.println(p.getSequenceNumber());
-                            }
-                            System.out.println("_____________ " + r.getAcknowledgemntNumber() +" ____________________");
+//                            for(ReadablePacket p : window){
+//                                System.out.println(p.getSequenceNumber());
+//                            }
+//                            System.out.println("_____________ " + r.getAcknowledgemntNumber() +" ____________________");
                         } catch (InterruptedException e1) {
                             e1.printStackTrace();
                         }
@@ -384,11 +383,11 @@ public class STPSender {
 
     private void sendPacket(STPPacket p) {
         double d = rand.nextDouble();
-        if(d < PLD.getpDrop()){
-            System.out.println("d -" + d + "pdrop" + PLD.getpDrop());
+        //if(d < PLD.getpDrop()){
+        //    System.out.println("d -" + d + "pdrop" + PLD.getpDrop());
             //logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
-            return;
-         }
+         //   return;
+        // }
         dataOut = p.getPacket();
         dataOut.setAddress(receiverIP);
         dataOut.setPort(receiverPort);

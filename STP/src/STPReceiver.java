@@ -137,14 +137,11 @@ public class STPReceiver {
                 sendPacket(packet);
                 continue;
             }
-
+            buffer.addConditionally(payloads);
             if (r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
                 payloads.add(new ReadablePacket(dataIn));
-            }
-            while((buffer.peek_sequence_number() < payloads.get(payloads.size()-1).getSequenceNumber()) && buffer.peek_sequence_number() != -1 ){
-                payloads.add(buffer.remove());
             }
             ackNumber = payloads.last();
             if (r.isFIN())
