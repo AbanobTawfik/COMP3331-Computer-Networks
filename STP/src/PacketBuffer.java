@@ -26,6 +26,10 @@ public class PacketBuffer {
         return buffer.poll();
     }
 
+    public void remove(ReadablePacket r){
+        buffer.remove(r);
+    }
+
     public int spaceRemaining(){
         return this.maxCapacity - this.buffer.size();
     }
