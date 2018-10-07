@@ -123,13 +123,20 @@ public class STPReceiver {
             }
             if(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER  != payloadSize) ){
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+                if (!validCheckSum(r,lastPayloadSize))
+                    ACK = false;
+                else
+                    ACK = true;
+            }else{
+                if (!validCheckSum(r,payloadSize))
+                    ACK = false;
+                else
+                    ACK = true;
             }
             //extract payload
             //drop packet if corrupted data
-            if (!validCheckSum(r))
-                ACK = false;
-            else
-                ACK = true;
+
+
             if(payloads.contains(r)){
                 header = new STPPacketHeader(0, sequenceNumber, r.getSequenceNumber(), IP,
                         r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
@@ -192,17 +199,17 @@ public class STPReceiver {
         writeFile();
     }
 
-    private int checksum(byte[] payload) {
+    private int checksum(byte[] payload,int length) {
         int sum = 0;
-        for (byte byteData : payload) {
-            sum += (int) byteData;
+        for (int i = 0; i < length; i++) {
+            sum += (int) payload[i];
         }
         sum = ~sum;
         return sum;
     }
 
-    private boolean validCheckSum(ReadablePacket r) {
-        return r.getChecksum() == checksum(r.getPayload());
+    private boolean validCheckSum(ReadablePacket r,int length) {
+        return r.getChecksum() == checksum(r.getPayload(),length);
     }
 
     private void sendPacket(STPPacket p) {

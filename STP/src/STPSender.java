@@ -213,7 +213,7 @@ public class STPSender {
                     if ((count == 1 && window.size() == 0) || count == 0) {
                         break;
                     }
-                    if(windowIndex >= filePackets.size()){
+                    if (windowIndex >= filePackets.size()) {
                         continue;
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
@@ -253,8 +253,10 @@ public class STPSender {
                         dataIn.setPort(receiverPort);
                         socket.setSoTimeout(10);
                         socket.receive(dataIn);
+
                         estimatedRTT = (int) System.currentTimeMillis() - sendTime;
                         r = new ReadablePacket(dataIn);
+                        System.out.println("ACK - " +r.isACK() + " ack number - " + r.getAcknowledgemntNumber());
                         if (r.isACK()) {
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
@@ -298,8 +300,8 @@ public class STPSender {
                 break;
             }
             try {
-                System.out.println("====== count " + count +" ======");
-                for(ReadablePacket re: window){
+                System.out.println("====== count " + count + " ======");
+                for (ReadablePacket re : window) {
                     System.out.println(re.getSequenceNumber());
                 }
                 System.out.println("===========");
