@@ -222,6 +222,10 @@ public class STPSender {
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
+                        if (reOrder && windowIndex == windowreOrder) {
+                            sendPacket(reOrderPacket);
+                            reOrder = false;
+                        }
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
@@ -250,15 +254,14 @@ public class STPSender {
                     try {
                         dataIn.setAddress(receiverIP);
                         dataIn.setPort(receiverPort);
-                        socket.setSoTimeout(10);
                         socket.receive(dataIn);
-
-                        estimatedRTT = (int) System.currentTimeMillis() - sendTime;
                         r = new ReadablePacket(dataIn);
-                        System.out.println("ACK - " + r.isACK() + " ack number - " + r.getAcknowledgemntNumber());
+                        //System.out.println("ACK - " + r.isACK() + " ack number - " + r.getAcknowledgemntNumber());
                         if (r.isACK()) {
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
+                                    estimatedRTT = (int) System.currentTimeMillis() - sendTime;
+                                    socket.setSoTimeout(100);
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
                                     logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
@@ -299,11 +302,6 @@ public class STPSender {
                 break;
             }
             try {
-                System.out.println("====== count " + count + " ======");
-                for (ReadablePacket re : window) {
-                    System.out.println(re.getSequenceNumber());
-                }
-                System.out.println("===========");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -401,33 +399,32 @@ public class STPSender {
     private void PLDSend(STPPacket p) {
         boolean flag = false;
         if (rand.nextDouble() < PLD.getpDrop()) {
+            System.out.println("DROPPED " + count+ "window index" + windowIndex);
             //logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
             return;
-        }
-        else if (rand.nextDouble() < PLD.getpDuplicate() && !flag) {
+        } else if (rand.nextDouble() < PLD.getpDuplicate() && !flag) {
+            System.out.println("DUPLICATED " + count+ "window index" + windowIndex);
             sendPacket(p);
             flag = true;
-        }
-        else if(rand.nextDouble() < PLD.getpCorrupt() && !flag){
-            System.out.println("corrupted");
+        } else if (rand.nextDouble() < PLD.getpCorrupt() && !flag) {
+            System.out.println("corrupted " + count+ "window index" + windowIndex);
             byte[] copy = new byte[p.getPayload().length];
-            for(int i = 0; i < p.getPayload().length; i++){
-                copy[i] =  p.getPayload()[i];
+            for (int i = 0; i < p.getPayload().length; i++) {
+                copy[i] = p.getPayload()[i];
             }
             copy[0]++;
-            p = new STPPacket(p.getHeader(),copy);
+            p = new STPPacket(p.getHeader(), copy);
             flag = true;
-        }
-        else if(rand.nextDouble() < PLD.getpOrder() && !flag && !reOrder){
+        } else if (rand.nextDouble() < PLD.getpOrder() && !flag && !reOrder) {
+            System.out.println("REORDERED " + count+ "window index" + windowIndex);
             //say we have a packet being re-ordered
             reOrder = true;
             windowreOrder = windowIndex + PLD.getMaxOrder();
             reOrderPacket = p;
             return;
 
-        }
-        else if(rand.nextDouble() < PLD.getpDelay() && !flag){
-            System.out.println("DELAYED");
+        } else if (rand.nextDouble() < PLD.getpDelay() && !flag) {
+            System.out.println("DELAYED " + count + "window index" + windowIndex);
             try {
                 Thread.sleep(rand.nextInt(PLD.getMaxDelay()));
             } catch (InterruptedException e) {
@@ -481,13 +478,18 @@ public class STPSender {
     }
 
     public int calculateRTT() {
-
+        int tmpEstimatedRTT = estimatedRTT;
+        int tmpDevRTT = devRTT;
         estimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
         estimatedRTT += (int) (0.25) * ((System.currentTimeMillis() - sendTime));
-
         devRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
         devRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
+        if((estimatedRTT + (int) this.gamma * devRTT) > 60000) {
+            estimatedRTT = tmpEstimatedRTT;
+            devRTT = tmpDevRTT;
+            return 59999;
+        }
         return (estimatedRTT + (int) this.gamma * devRTT);
     }
 
