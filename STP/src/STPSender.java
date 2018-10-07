@@ -33,7 +33,6 @@ public class STPSender {
     private float gamma;
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
     private volatile ArrayBlockingQueue<ReadablePacket> window;
-    private volatile ArrayBlockingQueue<Pair<Integer, ReadablePacket>> retransmissions;
     private STPTimer timer = new STPTimer();
     private FileInputStream file;
     private volatile int windowIndex = 0;
@@ -48,6 +47,7 @@ public class STPSender {
     private boolean reOrder = false;
     private int windowreOrder;
     private STPPacket reOrderPacket;
+    private int finalPacketSize = 0;
 
     public STPSender(String args[]) {
         try {
@@ -144,7 +144,8 @@ public class STPSender {
             int read = 0;
             while (true) {
                 try {
-                    if (file.available() < MSS) {
+                    if (file.available() < MSS && file.available() != 0) {
+                        finalPacketSize = file.available();
                         packetPayload = new byte[file.available()];
                     }
                     read = file.read(packetPayload);
@@ -237,8 +238,6 @@ public class STPSender {
                         windowIndex++;
                         //if we get a drop then we want to just go to next packet and not send --> drop packet
                         PLDSend(packet);
-                        logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex - 1).getSequenceNumber(), ackNumber, "snd", "D", calculateRTTWithNoChange());
-
                     }
                 }
             }
@@ -258,13 +257,38 @@ public class STPSender {
                         r = new ReadablePacket(dataIn);
                         //System.out.println("ACK - " + r.isACK() + " ack number - " + r.getAcknowledgemntNumber());
                         if (r.isACK()) {
+                            if (dupAcks.size() == 0) {
+                                dupAcks.add(r.getAcknowledgemntNumber());
+                            }
+                            if (dupAcks.size() == 3) {
+                                fastRetransmit();
+                                dupAcks.clear();
+                            }
+                            if (dupAcks.size() == 1 || dupAcks.size() == 2) {
+                                boolean flag = true;
+                                for (Integer i : dupAcks) {
+                                    if (r.getAcknowledgemntNumber() != i) {
+                                        flag = false;
+                                        break;
+                                    }
+                                }
+                                if (flag)
+                                    dupAcks.add(r.getAcknowledgemntNumber());
+                                else {
+                                    dupAcks.clear();
+                                    dupAcks.add(r.getAcknowledgemntNumber());
+                                }
+                            }
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     estimatedRTT = (int) System.currentTimeMillis() - sendTime;
                                     socket.setSoTimeout(100);
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
-                                    logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
+                                    if (dupAcks.size() > 1)
+                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv/DA", "A", estimatedRTT);
+                                    else
+                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
                                 }
                             }
                             continue;
@@ -273,7 +297,7 @@ public class STPSender {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     packet = new STPPacket(read);
                                     PLDSend(packet);
-                                    logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
+                                    logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/RXT", "D", calculateRTTWithNoChange());
                                     //System.out.println("time-out: Retransmission -- " + read.getSequenceNumber());
                                     break;
                                 }
@@ -310,15 +334,17 @@ public class STPSender {
     }
 
     private void terminate() {
+        System.out.println("seq " + sequenceNumber + "other seq " + (finalPacketSize));
         //send out the FIN
-
+        //sequenceNumber = sequenceNumber - (MSS - finalPacketSize);
         FIN = true;
         DUP = false;
         ACK = false;
-        header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+        header = new STPPacketHeader(0, sequenceNumber, 1, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize)+1, 1, "snd", "F", calculateRTTWithNoChange());
         //now wait for the FIN ACK
         while (true) {
             try {
@@ -332,11 +358,13 @@ public class STPSender {
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
+                logWrite(0, sequenceNumber - (MSS - finalPacketSize) +1, 1, "snd", "F", calculateRTTWithNoChange());
             } catch (IOException e) {
                 e.printStackTrace();
             }
             r = new ReadablePacket(dataIn);
             if (r.isFIN() && r.isACK()) {
+                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1, "rcv", "A", calculateRTTWithNoChange());
                 break;
             }
         }
@@ -354,6 +382,7 @@ public class STPSender {
             }
             r = new ReadablePacket(dataIn);
             if (r.isFIN() && !r.isACK()) {
+                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1, "rcv", "F", calculateRTTWithNoChange());
                 break;
             }
         }
@@ -364,6 +393,7 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 1, "snd", "A", calculateRTTWithNoChange());
     }
 
     private boolean containsFile(String fileName) {
@@ -397,17 +427,33 @@ public class STPSender {
     }
 
     private void PLDSend(STPPacket p) {
+        ReadablePacket read = new ReadablePacket(p.getPacket());
+        int size = 0;
+        if(read.getSequenceNumber() == filePackets.get(filePackets.size() -1).getSequenceNumber()) {
+            System.out.println("REgular size - " + finalPacketSize + "sequence number - " + read.getSequenceNumber());
+            size = finalPacketSize;
+        }
+        else {
+            System.out.println("REgular size - " + MSS + "sequence number - " + read.getSequenceNumber());
+            size = MSS;
+        }
         boolean flag = false;
         if (rand.nextDouble() < PLD.getpDrop()) {
-            System.out.println("DROPPED " + count+ "window index" + windowIndex);
+            System.out.println("DROPPED " + count + "window index" + windowIndex+ "window size - " + window.size());
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "drop", "D", calculateRTTWithNoChange());
+            PLD.addPacketDropped();
             //logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
             return;
         } else if (rand.nextDouble() < PLD.getpDuplicate() && !flag) {
-            System.out.println("DUPLICATED " + count+ "window index" + windowIndex);
+            PLD.addPacketDuplicated();
+            System.out.println("DUPLICATED " + count + "window index" + windowIndex + "window size - " + window.size());
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dup", "D", calculateRTTWithNoChange());
             sendPacket(p);
             flag = true;
         } else if (rand.nextDouble() < PLD.getpCorrupt() && !flag) {
-            System.out.println("corrupted " + count+ "window index" + windowIndex);
+            PLD.addPacketCorrupted();
+            System.out.println("corrupted " + count + "window index" + windowIndex+ "window size - " + window.size());
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr", "D", calculateRTTWithNoChange());
             byte[] copy = new byte[p.getPayload().length];
             for (int i = 0; i < p.getPayload().length; i++) {
                 copy[i] = p.getPayload()[i];
@@ -416,7 +462,9 @@ public class STPSender {
             p = new STPPacket(p.getHeader(), copy);
             flag = true;
         } else if (rand.nextDouble() < PLD.getpOrder() && !flag && !reOrder) {
-            System.out.println("REORDERED " + count+ "window index" + windowIndex);
+            PLD.addPacketReOrdered();
+            System.out.println("REORDERED " + count + "window index" + windowIndex+ "window size - " + window.size());
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/rord", "D", calculateRTTWithNoChange());
             //say we have a packet being re-ordered
             reOrder = true;
             windowreOrder = windowIndex + PLD.getMaxOrder();
@@ -424,7 +472,9 @@ public class STPSender {
             return;
 
         } else if (rand.nextDouble() < PLD.getpDelay() && !flag) {
-            System.out.println("DELAYED " + count + "window index" + windowIndex);
+            PLD.addPacketDelayed();
+            System.out.println("DELAYED " + count + "window index" + windowIndex+ "window size - " + window.size());
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dely", "D", calculateRTTWithNoChange());
             try {
                 Thread.sleep(rand.nextInt(PLD.getMaxDelay()));
             } catch (InterruptedException e) {
@@ -436,6 +486,7 @@ public class STPSender {
         dataOut.setPort(receiverPort);
         try {
             socket.send(dataOut);
+            logWrite(size, read.getSequenceNumber(), ackNumber, "snd", "D", calculateRTTWithNoChange());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -485,12 +536,19 @@ public class STPSender {
         devRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
         devRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
-        if((estimatedRTT + (int) this.gamma * devRTT) > 60000) {
+        if ((estimatedRTT + (int) this.gamma * devRTT) > 60000) {
             estimatedRTT = tmpEstimatedRTT;
             devRTT = tmpDevRTT;
             return 59999;
         }
         return (estimatedRTT + (int) this.gamma * devRTT);
+    }
+
+    public void fastRetransmit() {
+        PLD.addFastRetransmissions();
+        System.out.println("______________________________ FAST RETRANSMIT __________________________________");
+        windowIndex -= windowSize;
+        count += windowSize;
     }
 
     public int calculateRTTWithNoChange() {
