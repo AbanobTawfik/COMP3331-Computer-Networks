@@ -44,6 +44,7 @@ public class STPSender {
     private PriorityQueue<Integer> dupAcks = new PriorityQueue<Integer>(3);
     private Random rand = new Random();
     private boolean finalPacket = false;
+    private int count;
 
     public STPSender(String args[]) {
         try {
@@ -203,21 +204,29 @@ public class STPSender {
     }
 
     private void sendData() {
+        count = filePackets.size() + 1;
         //sender thread
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
-                    if (windowIndex > filePackets.size()) {
-                        System.out.println(filePackets.size() + " Break");
+                    if ((count == 1 && window.size() == 0) || count == 0) {
                         break;
+                    }
+                    if(windowIndex >= filePackets.size()){
+                        continue;
                     }
                     //if there is room inside our window we will transmit a window size from current index (based off last ACK)
                     if (window.remainingCapacity() > 0) {
+//                        if(windowIndex >= filePackets.size()){
+//                            windowIndex++;
+//                            continue;
+//                        }
 
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
                             window.put(filePackets.get(windowIndex));
+                            count--;
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -236,7 +245,7 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
-                    if (windowIndex > filePackets.size()) {
+                    if ((count == 1 && window.size() == 0) || count == 0) {
                         break;
                     }
                     try {
@@ -261,12 +270,12 @@ public class STPSender {
                                     packet = new STPPacket(read);
                                     PLDSend(packet);
                                     logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
-                                    System.out.println("time-out: Retransmission -- " + read.getSequenceNumber());
+                                    //System.out.println("time-out: Retransmission -- " + read.getSequenceNumber());
                                     break;
                                 }
                             }
 
-                            System.out.println("time-out: NAK");
+                            //System.out.println("time-out: NAK");
 
                         }
                     } catch (SocketTimeoutException e) {
@@ -276,7 +285,7 @@ public class STPSender {
                         packet = new STPPacket(retransmit);
                         PLDSend(packet);
                         logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
-                        System.out.println("time-out: Retransmission -- " + retransmit.getSequenceNumber());
+                        //System.out.println("time-out: Retransmission -- " + retransmit.getSequenceNumber());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -285,11 +294,15 @@ public class STPSender {
         }).start();
 
         while (true) {
-            if (filePackets.size() == windowIndex) {
+            if ((count == 1 && window.size() == 0) || count == 0) {
                 break;
             }
             try {
-
+                System.out.println("====== count " + count +" ======");
+                for(ReadablePacket re: window){
+                    System.out.println(re.getSequenceNumber());
+                }
+                System.out.println("===========");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();

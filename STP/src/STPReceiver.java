@@ -150,7 +150,6 @@ public class STPReceiver {
                 for(ReadablePacket r : buffer.getBuffer()){
                     payloads.add(r);
                 }
-                //writeFile();
                 return;
             }
             System.out.println(payloads.size());
