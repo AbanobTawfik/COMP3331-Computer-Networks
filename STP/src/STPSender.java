@@ -42,7 +42,7 @@ public class STPSender {
     private int estimatedRTT = 500;
     private int devRTT = 250;
     private PriorityQueue<Integer> dupAcks = new PriorityQueue<Integer>(3);
-    private Random rand = new Random();
+    private Random rand;
     private boolean finalPacket = false;
     private int count;
 
@@ -87,7 +87,7 @@ public class STPSender {
         int maxOrder = Integer.parseInt(args[10]);
         float pDelay = Float.parseFloat(args[11]);
         float maxDelay = Float.parseFloat(args[12]);
-        float seed = Float.parseFloat(args[13]);
+        long seed = Long.parseLong(args[13]);
         this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
         try {
             this.logFile = new FileWriter("Sender Log.txt");
@@ -107,6 +107,7 @@ public class STPSender {
             e.printStackTrace();
         }
         System.out.println(sequenceNumber);
+        this.rand = new Random(this.PLD.getSeed());
     }
 
     public void operate() {
@@ -402,7 +403,7 @@ public class STPSender {
     private void PLDSend(STPPacket p) {
         double d = rand.nextDouble();
         if (d < PLD.getpDrop()) {
-            //logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
+            logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
             return;
         }
         dataOut = p.getPacket();
