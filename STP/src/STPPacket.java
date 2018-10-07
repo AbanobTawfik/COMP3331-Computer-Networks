@@ -48,6 +48,7 @@ public class STPPacket {
         packet.setData(primitive(packetData));
     }
 
+
     public STPPacketHeader getHeader() {
         return header;
     }

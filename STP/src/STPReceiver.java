@@ -123,15 +123,21 @@ public class STPReceiver {
             }
             if(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER  != payloadSize) ){
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
-                if (!validCheckSum(r,lastPayloadSize))
+                if (!validCheckSum(r,lastPayloadSize)) {
+                    System.out.println("CORRUPTION chekcsum r ->" + r.getChecksum() + "<- " + "calcchksum ->" + checksum(r.getPayload(),payloadSize) + "<-");
                     ACK = false;
-                else
+                }
+                else {
                     ACK = true;
+                }
             }else{
-                if (!validCheckSum(r,payloadSize))
+                if (!validCheckSum(r,payloadSize) && r.getChecksum() != 0){
+                    System.out.println("CORRUPTION chekcsum r ->" + r.getChecksum() + "<- " + "calcchksum ->" + checksum(r.getPayload(),payloadSize) + "<-");
                     ACK = false;
-                else
+                }
+                else {
                     ACK = true;
+                }
             }
             //extract payload
             //drop packet if corrupted data
@@ -144,10 +150,11 @@ public class STPReceiver {
                 sendPacket(packet);
                 continue;
             }
-            if (r.getSequenceNumber() > (payloads.last() + payloadSize))
+            if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
-                payloads.add(new ReadablePacket(dataIn));
+                if(ACK)
+                    payloads.add(new ReadablePacket(dataIn));
             }
             ackNumber = payloads.last();
             for(ReadablePacket r : buffer.getBuffer()){

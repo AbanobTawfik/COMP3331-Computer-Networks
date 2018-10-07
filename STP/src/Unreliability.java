@@ -5,10 +5,10 @@ public class Unreliability {
     private float pOrder;
     private int maxOrder;
     private float pDelay;
-    private float maxDelay;
+    private int maxDelay;
     private long seed;
 
-    public Unreliability(float pDrop, float pDuplicate, float pCorrupt, float pOrder, int maxOrder, float pDelay, float maxDelay, long seed) {
+    public Unreliability(float pDrop, float pDuplicate, float pCorrupt, float pOrder, int maxOrder, float pDelay, int maxDelay, long seed) {
         this.pDrop = pDrop;
         this.pDuplicate = pDuplicate;
         this.pCorrupt = pCorrupt;
@@ -43,7 +43,7 @@ public class Unreliability {
         return pDelay;
     }
 
-    public float getMaxDelay() {
+    public int getMaxDelay() {
         return maxDelay;
     }
 
