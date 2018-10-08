@@ -29,6 +29,7 @@ public class STPReceiver {
     private FileWriter logFile;
     private boolean firstDataSizeFlag = false;
     private int lastPayloadSize;
+    private ReceiverLogs PLD = new ReceiverLogs();
 
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
@@ -53,7 +54,22 @@ public class STPReceiver {
             e.printStackTrace();
         }
         try {
-            this.logFile = new FileWriter("Receiver Log.txt");
+            dir = new File("log_files_" + args[1]);
+            if(!dir.exists());
+                dir.mkdir();
+            this.logFile = new FileWriter(dir.getAbsoluteFile() + "/" + "Receiver Log.txt");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", "snd/rcv", "time",
+                    "type", "sequence", "payload size", "ack");
+            logFile.write(s);
+            logFile.flush();
+            s = "--------------------------------------------------------------------------\n";
+            logFile.write(s);
+            logFile.flush();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -64,6 +80,7 @@ public class STPReceiver {
         handshake();
         receiveData();
         terminate();
+        finishLogFile();
         System.exit(0);
     }
 
@@ -71,12 +88,13 @@ public class STPReceiver {
         while (!SYN) {
             try {
                 socket.receive(dataIn);
+                PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             r = new ReadablePacket(dataIn);
             if (r.isSYN()) {
-                logWrite(0, r.getSequenceNumber(), r.getSequenceNumber(), "rcv", "S");
+                logWrite(0, 0, 0, "rcv", "S");
                 SYN = true;
                 ACK = true;
             }
@@ -86,7 +104,7 @@ public class STPReceiver {
         dataOut.setAddress(r.getSourceIP());
         dataOut.setPort(r.getSourcePort());
         //add 1 for SYN bit
-        ackNumber = r.getSequenceNumber() + 1;
+        ackNumber = 1;
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
@@ -96,6 +114,7 @@ public class STPReceiver {
         while (true) {
             try {
                 socket.receive(dataIn);
+                PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -104,6 +123,7 @@ public class STPReceiver {
                 break;
         }
         sequenceNumber++;
+        logWrite(0, sequenceNumber, ackNumber, "rcv", "A");
         r.display();
         System.out.println("handshake complete");
     }
@@ -112,6 +132,9 @@ public class STPReceiver {
         while (!this.FIN) {
             try {
                 socket.receive(dataIn);
+                PLD.addBytesReceived(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER);
+                PLD.addSegmentsReceived();
+                PLD.addDataSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -121,21 +144,18 @@ public class STPReceiver {
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 firstDataSizeFlag = true;
             }
-            if(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER  != payloadSize) ){
+            if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER != payloadSize)) {
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
-                if (!validCheckSum(r,lastPayloadSize)) {
-                    System.out.println("CORRUPTION chekcsum r ->" + r.getChecksum() + "<- " + "calcchksum ->" + checksum(r.getPayload(),payloadSize) + "<-");
+                if (!validCheckSum(r, lastPayloadSize)) {
                     ACK = false;
-                }
-                else {
+                } else {
                     ACK = true;
                 }
-            }else{
-                if (!validCheckSum(r,payloadSize) && r.getChecksum() != 0){
-                    System.out.println("CORRUPTION chekcsum r ->" + r.getChecksum() + "<- " + "calcchksum ->" + checksum(r.getPayload(),payloadSize) + "<-");
+            } else {
+                if (!validCheckSum(r, payloadSize) && r.getChecksum() != 0) {
+                    PLD.addCorruptDataSegments();
                     ACK = false;
-                }
-                else {
+                } else {
                     ACK = true;
                 }
             }
@@ -143,25 +163,40 @@ public class STPReceiver {
             //drop packet if corrupted data
 
 
-            if(payloads.contains(r)){
+            if (payloads.contains(r)) {
+                PLD.addDuplicateSegments();
                 header = new STPPacketHeader(0, sequenceNumber, r.getSequenceNumber(), IP,
                         r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
                 packet = new STPPacket(this.header, new byte[0]);
                 sendPacket(packet);
+                logWrite(0, sequenceNumber, ackNumber, "snd/DA", "A");
                 continue;
             }
             if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize))
                 buffer.add(new ReadablePacket(dataIn));
             else {
-                if(ACK)
+                if (ACK)
                     payloads.add(new ReadablePacket(dataIn));
             }
+            if(ackNumber == payloads.last())
+                PLD.addDupACKS();
             ackNumber = payloads.last();
-            for(ReadablePacket r : buffer.getBuffer()){
+
+            if (!ACK)
+                logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv/corr", "D");
+            else {
+                if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER == 0) {
+                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,  r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "F");
+                } else {
+                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "D");
+                }
+            }
+            for (ReadablePacket r : buffer.getBuffer()) {
                 payloads.add(r);
             }
             if (r.isFIN()) {
-                for(ReadablePacket r : buffer.getBuffer()){
+                PLD.addSegmentsReceived();
+                for (ReadablePacket r : buffer.getBuffer()) {
                     payloads.add(r);
                 }
                 return;
@@ -171,6 +206,7 @@ public class STPReceiver {
                     r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
             packet = new STPPacket(this.header, new byte[0]);
             sendPacket(packet);
+            logWrite(0, sequenceNumber, ackNumber, "snd", "A");
         }
     }
 
@@ -185,28 +221,32 @@ public class STPReceiver {
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
         sendPacket(packet);
+        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, "snd", "A");
         //now we want to send back our FIN to initiate our side of the closure
         ACK = false;
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
         sendPacket(packet);
+        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, "snd", "F");
         //now we want to wait for our ack from the server
         while (true) {
             try {
                 socket.receive(dataIn);
+                PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             r = new ReadablePacket(dataIn);
             if (r.isACK() && r.isFIN())
-                break;
+                logWrite(0, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, ++sequenceNumber, "rcv", "A");
+            break;
         }
         socket.close();
         writeFile();
     }
 
-    private int checksum(byte[] payload,int length) {
+    private int checksum(byte[] payload, int length) {
         int sum = 0;
         for (int i = 0; i < length; i++) {
             sum += (int) payload[i];
@@ -215,8 +255,8 @@ public class STPReceiver {
         return sum;
     }
 
-    private boolean validCheckSum(ReadablePacket r,int length) {
-        return r.getChecksum() == checksum(r.getPayload(),length);
+    private boolean validCheckSum(ReadablePacket r, int length) {
+        return r.getChecksum() == checksum(r.getPayload(), length);
     }
 
     private void sendPacket(STPPacket p) {
@@ -233,11 +273,11 @@ public class STPReceiver {
     private void writeFile() {
         System.out.println(payloads.size());
         System.out.println("-------");
-        if(payloads.size() > 1)
+        if (payloads.size() > 1)
             payloads.remove(payloads.get(payloads.size() - 1));
         try {
             for (ReadablePacket r : payloads.getArrayList()) {
-                pdfFile.write(unpaddedPayload(r, r.equals(payloads.get(payloads.size()-1))));
+                pdfFile.write(unpaddedPayload(r, r.equals(payloads.get(payloads.size() - 1))));
                 pdfFile.flush();
             }
         } catch (IOException e) {
@@ -251,18 +291,15 @@ public class STPReceiver {
     }
 
     public byte[] unpaddedPayload(ReadablePacket r, boolean last) {
-        if(last)
+        if (last)
             return Arrays.copyOf(r.getPayload(), lastPayloadSize);
         return Arrays.copyOf(r.getPayload(), payloadSize);
     }
 
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
         float timePassed = timer.timePassed() / 1000;
-        String s = String.format("%-20s" + "%-10s" + "%-10s + %-10s" + "%-10s" + "%-10s\n", sndOrReceive,
-                timePassed, " ", status, sequenceNumber, length, ackNumber, timePassed);
-        //String s = String.format(sndOrReceive + "\t\t\t\t" + "%2f" + "\t\t" + status + "\t\t\t"
-        //          + sequenceNumber + "\t\t" + length + "\t\t"
-        //         + ackNumber + "\n",timePassed);
+        String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", sndOrReceive
+                , timePassed, status, sequenceNumber, length, ackNumber);
         try {
             logFile.write(s);
             logFile.flush();
@@ -270,5 +307,36 @@ public class STPReceiver {
             e.printStackTrace();
         }
 
+    }
+
+    public void finishLogFile() {
+        String s = "--------------------------------------------------------------------------\n";
+        try {
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Amount of data received (bytes)", PLD.getBytesReceived());
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Total Segments Received", PLD.getSegmentsReceived());
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Data segments received", PLD.getDataSegmentsReceived());
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Data segments with Bit Errors", PLD.getCorruptDataSegments());
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Duplicate data segments received", PLD.getDuplicateSegments());
+            logFile.write(s);
+            logFile.flush();
+            s = String.format("%-50s %-20s\n", "Duplicate ACKs sent", PLD.getDupACKS());
+            logFile.write(s);
+            logFile.flush();
+            s = "--------------------------------------------------------------------------\n";
+            logFile.write(s);
+            logFile.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,88 +1,140 @@
-import javafx.util.Pair;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 
+/**
+ * This class STPSender will implement a server side TCP sender over a UDP channel. reliability is implemented in the form
+ * of acknowledgements from the receiver. the class guarantees that any packet once placed in the window will guaranteed to be
+ * delivered to the receiver before being removed from the window. Initially the file is chunked into MSS packets and a packet
+ * that contains remainder bytes from MSS. and is stored into a list. these packets are sent through a UDP socket, whilst at the same
+ * time receiving acknowledgements from the  receiver through the use of multi-threading. since most transfers will occur over
+ * a reliable channel, unreliability was also implemented as per specification through the use of a PLD module.
+ */
 public class STPSender {
+    //this will be the initial value from RTT (RTT = timercv - timesnd)
     private int sendTime;
+    //these will be used to check if the requested file is contained within the directory
     private File folder = new File(System.getProperty("user.dir"));
     private File[] allFiles = folder.listFiles();
+    //variable for ip and port used for the sender side UDP socket
     private InetAddress IP;
     private int portNumber;
+    //UDP SOCKET (NOT TCP)
     private DatagramSocket socket;
     private String fileRequested;
+    //the two different UDP receive/send packets for input/output streams
     private DatagramPacket dataIn = new DatagramPacket(new byte[1000024], 1000024);
     private DatagramPacket dataOut = new DatagramPacket(new byte[1000024], 1000024);
-    //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
+    //initialising sequence number (ACK NUMBER COMES FROM RECEIVER SIDE)
     private int sequenceNumber = 0;
     private int ackNumber;
+    //creating general packet to avoid re-initialising and allow easy use with try catch
     private STPPacketHeader header;
     private STPPacket packet;
     private ReadablePacket r;
+    //flags for stage of transmissions (DUP was in early development however is redundant)
     private boolean SYN = false;
     private boolean ACK = false;
     private boolean FIN = false;
     private boolean DUP = false;
+    //receiver UDP socket information
     private InetAddress receiverIP;
     private int receiverPort;
+    //PLD MODULE
     private Unreliability PLD;
+    //below are the paramaters for the window and timer
     private int MWS;
     private int MSS;
     private float gamma;
+    //creating a new array to store file packet when file is initially processed
     private ArrayList<ReadablePacket> filePackets = new ArrayList<ReadablePacket>();
+    //creating a threadsafe blocking queue that allows storage/removal from multi-threaded proccess
     private volatile ArrayBlockingQueue<ReadablePacket> window;
+    //creating a counting timer for time since execution of code used in log files
     private STPTimer timer = new STPTimer();
+    //file input stream for reading requested formatted file
     private FileInputStream file;
+    //creating a thread safe variable since it is accessed from multiple threads
+    //this variable will point to current index in our list of packets we are sending
     private volatile int windowIndex = 0;
     private int windowSize;
+    //log output purposes
     private FileWriter logFile;
+    //initialising our RTT variables which change throughout runtime
     private int estimatedRTT = 500;
     private int devRTT = 250;
+    //creating a queue for our duplicate acks that limits to 3, on 3 we clear for fast retransmit
     private PriorityQueue<Integer> dupAcks = new PriorityQueue<Integer>(3);
+    //random number generator for PLD module
     private Random rand;
-    private boolean finalPacket = false;
+    //below are extra variables used as flags or temporary place holding in the PLD module
     private int count;
     private boolean reOrder = false;
     private int windowreOrder;
     private STPPacket reOrderPacket;
+    //this variable will hold the size of the final packet, since we cannot just split all packets into MSS
     private int finalPacketSize = 0;
 
+    /**
+     * This method will be used to create an instance of the STPSender, it will pass in the variables from the program
+     * arguments passed through from the user, and will create a sender (server) that will match the behaviour passed in through
+     * user input
+     *
+     * @param args program arguements passed through
+     */
     public STPSender(String args[]) {
+        //first we want to initialise the IP address as the address of the current machine (cant use 127.0.0.1) need
+        //canonical ip to bind to
         try {
             this.IP = InetAddress.getByName(InetAddress.getLocalHost().getCanonicalHostName());
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        //randomise current port number to 2000 + a random number between 0-60000 (since 1-1024 taken and max 65535)
         this.portNumber = 2000 + new Random().nextInt(60000);
         try {
+            //create our sender side socket with the port + ip
             this.socket = new DatagramSocket(this.portNumber, this.IP);
         } catch (Exception e) {
             e.printStackTrace();
         }
         try {
+            //if the receiver ip is local host or 127.0.0.1 since we cannot bind to 127.0.0.1
             if (args[0].equals("localhost") || args[0].equals("127.0.0.1")) {
+                //set the receiver ip address to host address of the machine
                 this.receiverIP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
             } else {
+                //otherwise we use the ip address passed through
                 this.receiverIP = InetAddress.getByName(args[0]);
             }
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        //receiver port is the second arguement passed through
         this.receiverPort = Integer.parseInt(args[1]);
+        //set the location for our output  to the receivers ip and port
         dataOut.setAddress(this.receiverIP);
         dataOut.setPort(this.receiverPort);
+        //extract file requested from program arguement 3
         this.fileRequested = args[2];
+        //next three variables from program arguements will be the window and timer variables
         this.MWS = Integer.parseInt(args[3]);
         this.MSS = Integer.parseInt(args[4]);
         this.gamma = Float.parseFloat(args[5]);
+        //set our maximum window size to be the floor division of the maximum window size divided by maximum segment size
         this.windowSize = Math.floorDiv(MWS, MSS);
+        //if the window size is less than or equal to 1 due to botched arguements passed through
         if (windowSize <= 1) {
+            //set maximum window size as 1
             this.windowSize = 1;
+            //set the maximum segment size as the window size (will be stop and wait like this however so dont pass
+            //a MWS greater than MSS
             this.MSS = this.MWS;
         }
+        //create our window to have a maximum capacity of the max window size
         window = new ArrayBlockingQueue<>(windowSize);
+        //extract PLD module variables from the rest of program arguements
         float pDrop = Float.parseFloat(args[6]);
         float pDuplicate = Float.parseFloat(args[7]);
         float pCorrupt = Float.parseFloat(args[8]);
@@ -91,47 +143,77 @@ public class STPSender {
         float pDelay = Float.parseFloat(args[11]);
         int maxDelay = Integer.parseInt(args[12]);
         long seed = Long.parseLong(args[13]);
+        //create a new PLD module that contains multiple functionallity, see class unreliability
         this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
+        //now we want to initialise our log file with the name sender_log.txt" inside a directory for our files log file
         try {
-            this.logFile = new FileWriter("Sender Log.txt");
+            //we want to initialise a directory for the requested file's log file
+            File dir = new File("log_files_" + fileRequested);
+            //if the directory does not exist, we want to create it (else we ignore it)
+            if (!dir.exists())
+                dir.mkdir();
+            //we want to now put the sender side log file inside the directory
+            this.logFile = new FileWriter(dir.getAbsoluteFile() + "/" + "Sender Log.txt");
         } catch (IOException e) {
             e.printStackTrace();
         }
         try {
+            //now we want to iniitalise the log files with labels for what each column represents
             String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", "snd/rcv", "time",
-                    "type", "sequence", "payload size", "ack", "RTT", "window size");
+                    "type", "sequence", "payload size", "ack", "Timeout", "window size");
+            //write the string to the log file
             logFile.write(s);
+            //flush to allow for more writing
             logFile.flush();
+            //we want to create seperator now to indicate beginning of execution now
             s = "------------------------------------------------------------------------------------------------------------------\n";
+            //write and flush to log file
             logFile.write(s);
             logFile.flush();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println(sequenceNumber);
+        //create our random generator to use the seed passed into the PLD module
         this.rand = new Random(this.PLD.getSeed());
     }
 
+    /**
+     * this method will be called from the Sender where the entire program will run
+     * this method will first begin the timer, perform 3 way handshake, send the data to the receiver,
+     * terminate the connection and finally print the statistics to the log file in a summary. at the end of this function
+     * an exit with status 0 is called to indicate file was sent correctly!
+     */
     public void operate() {
-        //initiate the 3 way handshake
+        //start the counting timer running on a seperate thread
         timer.start();
+        //now we want to convert our file into packet chunks
         prepareFile();
+        //perform the 3 way handshake
         handshake();
+        //send the data from the sender to receiver
         sendData();
+        //terminate the connection between both sender/receiver
         terminate();
+        //print the summary statistics to the log file
         finishLogFile();
+        //exit successfully if all previosu steps were successful
         System.exit(0);
     }
 
     private void prepareFile() {
+        //first we want to check if the file exists within the current directory
+        //if the file doesn't exist in current directory, we exit with error status and a easy to understand error message
         if (!containsFile(fileRequested)) {
             System.out.println("The file requested does not exist in this directory");
             System.exit(1);
         } else {
             //we want to create a list of ready to send packets (since they are file data we want to turn off most flags)
             try {
+                //now we want to create our file input stream to read the file in
                 file = new FileInputStream(fileRequested);
+                //if the file is smaller than the maximum segment size of the packet
+                //we want to modify our maximum segment size to be the file size
                 if (MSS > file.available()) {
                     MSS = file.available();
                 }
@@ -140,19 +222,27 @@ public class STPSender {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
+            //we want to create our data payload that stores MSS amount of bytes
             byte[] packetPayload = new byte[MSS];
+            //create a variable to see how many bytes are read as a check
             int read = 0;
             while (true) {
                 try {
+                    //if the MSS is larger than remaining bytes in file and the remaining bytes is not 0
+                    //that means we have remainder bytes inside the last packet
                     if (file.available() < MSS && file.available() != 0) {
+                        //set the final packet size to be the remaining bytes in file
                         finalPacketSize = file.available();
+                        //refactor the payload to store the remaining bytes in file instead of MSS
                         packetPayload = new byte[file.available()];
                     }
+                    //now we want to read from the file into the byte array
                     read = file.read(packetPayload);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //if the number of bytes read is less than or equal to 0, it means reached end of file
+                //exit from the while loop
                 if (read <= 0) {
                     break;
                 }
@@ -276,8 +366,7 @@ public class STPSender {
                                 if (flag) {
                                     PLD.addDuplicateACKS();
                                     dupAcks.add(r.getAcknowledgemntNumber());
-                                }
-                                else {
+                                } else {
                                     dupAcks.clear();
                                     dupAcks.add(r.getAcknowledgemntNumber());
                                 }
@@ -285,15 +374,10 @@ public class STPSender {
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
                                     estimatedRTT = (int) System.currentTimeMillis() - sendTime;
-                                    socket.setSoTimeout(100);
+                                    socket.setSoTimeout(calculateRTT());
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
                                     if (dupAcks.size() > 1) {
-                                        System.out.println("--- " + r.getAcknowledgemntNumber() + " ---");
-                                        for(Integer p: dupAcks){
-                                            System.out.println("ACK " + p);
-                                        }
-                                        System.out.println("------");
                                         logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv/DA", "A", estimatedRTT);
                                     } else {
                                         logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
@@ -344,7 +428,6 @@ public class STPSender {
     }
 
     private void terminate() {
-        System.out.println("seq " + sequenceNumber + "other seq " + (finalPacketSize));
         //send out the FIN
         //sequenceNumber = sequenceNumber - (MSS - finalPacketSize);
         FIN = true;
@@ -354,7 +437,7 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 1, "snd", "F", calculateRTTWithNoChange());
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize), 1, "snd", "F", calculateRTTWithNoChange());
         //now wait for the FIN ACK
         while (true) {
             try {
@@ -403,7 +486,7 @@ public class STPSender {
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
-        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 1, "snd", "A", calculateRTTWithNoChange());
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 2, "snd", "A", calculateRTTWithNoChange());
     }
 
     private boolean containsFile(String fileName) {
@@ -503,6 +586,16 @@ public class STPSender {
         }
     }
 
+    /**
+     * Log write.
+     *
+     * @param length         the length
+     * @param sequenceNumber the sequence number
+     * @param ackNumber      the ack number
+     * @param sndOrReceive   the snd or receive
+     * @param status         the status
+     * @param timeOut        the time out
+     */
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status, int timeOut) {
         float timePassed = timer.timePassed() / 1000;
         String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", sndOrReceive
@@ -517,10 +610,22 @@ public class STPSender {
     }
 
 
+    /**
+     * Packet index int.
+     *
+     * @param r the r
+     * @return the int
+     */
     public int packetIndex(ReadablePacket r) {
         return filePackets.indexOf(r);
     }
 
+    /**
+     * Gets nack packet.
+     *
+     * @param r the r
+     * @return the nack packet
+     */
     public ReadablePacket getNACKPacket(ReadablePacket r) {
         for (ReadablePacket read : filePackets) {
             if (read.getSequenceNumber() == r.getAcknowledgemntNumber()) {
@@ -530,6 +635,11 @@ public class STPSender {
         return null;
     }
 
+    /**
+     * Clear window before last ack.
+     *
+     * @param ack the ack
+     */
     public void clearWindowBeforeLastAck(int ack) {
         for (ReadablePacket r : window) {
             if (r.getAcknowledgemntNumber() < ack + MSS) {
@@ -539,6 +649,11 @@ public class STPSender {
         }
     }
 
+    /**
+     * Calculate rtt int.
+     *
+     * @return the int
+     */
     public int calculateRTT() {
         int tmpEstimatedRTT = estimatedRTT;
         int tmpDevRTT = devRTT;
@@ -555,13 +670,20 @@ public class STPSender {
         return (estimatedRTT + (int) this.gamma * devRTT);
     }
 
+    /**
+     * Fast retransmit.
+     */
     public void fastRetransmit() {
         PLD.addFastRetransmissions();
-        System.out.println("______________________________ FAST RETRANSMIT __________________________________");
         windowIndex -= windowSize;
         count += windowSize;
     }
 
+    /**
+     * Calculate rtt with no change int.
+     *
+     * @return the int
+     */
     public int calculateRTTWithNoChange() {
         int tmpEstimatedRTT = estimatedRTT;
         tmpEstimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
@@ -573,6 +695,9 @@ public class STPSender {
         return (tmpEstimatedRTT + (int) this.gamma * tmpDevRTT);
     }
 
+    /**
+     * Finish log file.
+     */
     public void finishLogFile() {
         String s = "------------------------------------------------------------------------------------------------------------------\n";
         try {
