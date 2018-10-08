@@ -335,7 +335,11 @@ public class STPSender {
     }
 
     /**
-     *
+     * this method will reliably send each packet in the filepacket list to the sender. the sending/receiving of acks is
+     * seperated by multi-threading where we perform both simultaneous to replicate sliding window. since each packet
+     * placed in the window will be guaranteed to be sent before removal, we will simply count number of packets put in
+     * the window. if we have put the filepackets size worth of packets in the window, we will return since that means
+     * all packets will have sent
      */
     private void sendData() {
         count = filePackets.size() + 1;
@@ -344,6 +348,7 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
+                    System.out.println(windowIndex);
                     if ((count == 1 && window.size() == 0) || count == 0) {
                         break;
                     }
@@ -543,6 +548,11 @@ public class STPSender {
         return false;
     }
 
+    /**
+     *
+     * @param payload
+     * @return
+     */
     private int checksum(byte[] payload) {
         int sum = 0;
         for (byte byteData : payload) {
@@ -726,6 +736,11 @@ public class STPSender {
     private void fastRetransmit() {
         PLD.addFastRetransmissions();
         windowIndex -= windowSize;
+        if(windowIndex <= 0){
+            windowIndex = 0;
+            count = filePackets.size();
+            return;
+        }
         count += windowSize;
     }
 
@@ -742,6 +757,8 @@ public class STPSender {
         tmpDevRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
         tmpDevRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
+        if((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) > 60000)
+            return 59999;
         return (tmpEstimatedRTT + (int) this.gamma * tmpDevRTT);
     }
 
