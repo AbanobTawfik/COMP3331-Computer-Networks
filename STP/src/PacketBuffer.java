@@ -53,4 +53,11 @@ public class PacketBuffer {
             count++;
         }
     }
+
+    public void removeDuplicates(PacketSet src){
+        for(ReadablePacket r : buffer){
+            if(src.contains(r))
+                buffer.remove(r);
+        }
+    }
 }

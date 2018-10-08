@@ -64,6 +64,8 @@ public class STPSender {
     //initialising our RTT variables which change throughout runtime
     private int estimatedRTT = 500;
     private int devRTT = 250;
+    private int initialEstimatedRTT = 500;
+    private int initialDevRTT = 250;
     //creating a queue for our duplicate acks that limits to 3, on 3 we clear for fast retransmit
     private PriorityQueue<Integer> dupAcks = new PriorityQueue<Integer>(3);
     //random number generator for PLD module
@@ -159,14 +161,14 @@ public class STPSender {
         }
         try {
             //now we want to iniitalise the log files with labels for what each column represents
-            String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", "snd/rcv", "time",
-                    "type", "sequence", "payload size", "ack", "Timeout", "window size");
+            String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", "snd/rcv", "time",
+                    "type", "sequence", "payload size", "ack");
             //write the string to the log file
             logFile.write(s);
             //flush to allow for more writing
             logFile.flush();
             //we want to create seperator now to indicate beginning of execution now
-            s = "------------------------------------------------------------------------------------------------------------------\n";
+            s = "--------------------------------------------------------------------------\n";
             //write and flush to log file
             logFile.write(s);
             logFile.flush();
@@ -342,14 +344,20 @@ public class STPSender {
      * all packets will have sent
      */
     private void sendData() {
+        //initialising the count
         count = filePackets.size() + 1;
-        //sender thread
+        //start a new thread for sending packets in the window
         new Thread(new Runnable() {
             @Override
             public void run() {
+                //
                 while (true) {
-                    System.out.println(windowIndex);
-                    if ((count == 1 && window.size() == 0) || count == 0) {
+                    try {
+                        System.out.println(window.size() + " ---- " + calculateRTTWithNoChange() + " ---- " + socket.getSoTimeout());
+                    } catch (SocketException e) {
+                        e.printStackTrace();
+                    }
+                    if ((count <= 1 && window.size() == 0)) {
                         break;
                     }
                     if (windowIndex >= filePackets.size()) {
@@ -368,10 +376,10 @@ public class STPSender {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        sendTime = (int) System.currentTimeMillis();
                         windowIndex++;
                         //if we get a drop then we want to just go to next packet and not send --> drop packet
                         PLDSend(packet);
+
                     }
                 }
             }
@@ -381,10 +389,11 @@ public class STPSender {
             @Override
             public void run() {
                 while (true) {
-                    if ((count == 1 && window.size() == 0) || count == 0) {
+                    if ((count <= 1 && window.size() == 0)) {
                         break;
                     }
                     try {
+                        sendTime = (int) System.currentTimeMillis();
                         dataIn.setAddress(receiverIP);
                         dataIn.setPort(receiverPort);
                         socket.receive(dataIn);
@@ -416,7 +425,7 @@ public class STPSender {
                             }
                             for (ReadablePacket read : window) {
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
-                                    estimatedRTT = (int) System.currentTimeMillis() - sendTime;
+                                    //estimatedRTT = (int) System.currentTimeMillis() - sendTime;
                                     socket.setSoTimeout(calculateRTT());
                                     ackNumber = r.getSequenceNumber();
                                     window.remove(read);
@@ -459,7 +468,7 @@ public class STPSender {
         }).start();
 
         while (true) {
-            if ((count == 1 && window.size() == 0) || count == 0) {
+            if ((count <= 1 && window.size() == 0) ) {
                 break;
             }
             try {
@@ -658,8 +667,13 @@ public class STPSender {
      */
     private void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status, int timeOut) {
         float timePassed = timer.timePassed() / 1000;
-        String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", sndOrReceive
-                , timePassed, status, sequenceNumber, length, ackNumber, timeOut, window.size());
+        try {
+            timeOut = socket.getSoTimeout();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", sndOrReceive
+                , timePassed, status, sequenceNumber, length, ackNumber);
         try {
             logFile.write(s);
             logFile.flush();
@@ -727,6 +741,12 @@ public class STPSender {
             devRTT = tmpDevRTT;
             return 59999;
         }
+        if ((estimatedRTT + (int) this.gamma * devRTT) <= 0) {
+            //reset estimated and devRTT and set sensible 50ms timeout
+            estimatedRTT = 50;
+            devRTT = 25;
+            return 10;
+        }
         return (estimatedRTT + (int) this.gamma * devRTT);
     }
 
@@ -759,6 +779,8 @@ public class STPSender {
         tmpDevRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
         if((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) > 60000)
             return 59999;
+        if((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) <= 0)
+            return 10;
         return (tmpEstimatedRTT + (int) this.gamma * tmpDevRTT);
     }
 
@@ -766,7 +788,7 @@ public class STPSender {
      * Finish log file.
      */
     private void finishLogFile() {
-        String s = "------------------------------------------------------------------------------------------------------------------\n";
+        String s = "--------------------------------------------------------------------------\n";
         try {
             logFile.write(s);
             logFile.flush();
@@ -803,7 +825,7 @@ public class STPSender {
             s = String.format("%-50s %-20s\n", "Number of  DUP ACKS received", PLD.getDuplicateACKS());
             logFile.write(s);
             logFile.flush();
-            s = "------------------------------------------------------------------------------------------------------------------\n";
+            s = "--------------------------------------------------------------------------\n";
             logFile.write(s);
             logFile.flush();
         } catch (IOException e) {

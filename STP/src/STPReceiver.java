@@ -129,7 +129,8 @@ public class STPReceiver {
     }
 
     private void receiveData() {
-        while (!this.FIN) {
+        while (true) {
+            System.out.println("free heap size - " + Runtime.getRuntime().freeMemory());
             try {
                 socket.receive(dataIn);
                 PLD.addBytesReceived(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER);
@@ -143,6 +144,7 @@ public class STPReceiver {
                 payloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 firstDataSizeFlag = true;
+                r.setPayload(unpaddedPayload(r,false));
             }
             if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER != payloadSize)) {
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
@@ -159,10 +161,9 @@ public class STPReceiver {
                     ACK = true;
                 }
             }
+            minimizedPayload(r);
             //extract payload
             //drop packet if corrupted data
-
-
             if (payloads.contains(r)) {
                 PLD.addDuplicateSegments();
                 header = new STPPacketHeader(0, sequenceNumber, r.getSequenceNumber(), IP,
@@ -172,16 +173,17 @@ public class STPReceiver {
                 logWrite(0, sequenceNumber, ackNumber, "snd/DA", "A");
                 continue;
             }
-            if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize))
-                buffer.add(new ReadablePacket(dataIn));
+            if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize)) {
+                buffer.add(r);
+            }
             else {
-                if (ACK)
-                    payloads.add(new ReadablePacket(dataIn));
+                if (ACK) {
+                    payloads.add(r);
+                }
             }
             if(ackNumber == payloads.last())
                 PLD.addDupACKS();
             ackNumber = payloads.last();
-
             if (!ACK)
                 logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv/corr", "D");
             else {
@@ -191,17 +193,23 @@ public class STPReceiver {
                     logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "D");
                 }
             }
+
             for (ReadablePacket r : buffer.getBuffer()) {
                 payloads.add(r);
+                //buffer.remove(r);
             }
             if (r.isFIN()) {
                 PLD.addSegmentsReceived();
                 for (ReadablePacket r : buffer.getBuffer()) {
                     payloads.add(r);
+                    //buffer.remove(r);
                 }
                 return;
             }
-            System.out.println(payloads.size());
+            buffer.removeDuplicates(payloads);
+            System.out.println("number of  packets - " + payloads.size());
+            //buffer.removeDuplicates(payloads);
+
             header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                     r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
             packet = new STPPacket(this.header, new byte[0]);
@@ -271,6 +279,10 @@ public class STPReceiver {
     }
 
     private void writeFile() {
+        System.out.println("--- payload sizes ------");
+        for(ReadablePacket r : payloads.getArrayList()){
+            System.out.println(r.getPayload().length);
+        }
         System.out.println(payloads.size());
         System.out.println("-------");
         if (payloads.size() > 1)
@@ -294,6 +306,14 @@ public class STPReceiver {
         if (last)
             return Arrays.copyOf(r.getPayload(), lastPayloadSize);
         return Arrays.copyOf(r.getPayload(), payloadSize);
+    }
+
+    public void minimizedPayload(ReadablePacket r){
+        byte[] set = new byte[payloadSize];
+        for(int i = 0; i < payloadSize; i++){
+            set[i] = r.getPayload()[i];
+        }
+        r.setPayload(set);
     }
 
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
