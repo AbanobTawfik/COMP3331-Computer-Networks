@@ -100,7 +100,7 @@ public class WebServer {
      * it will first check the type of file it is, and then proccess it accordingly
      *
      * @param requestedFile the name of the file being requested by client
-     * @throws IOException
+     * @throws IOException throw the io exception
      */
     public void handle(String requestedFile) throws IOException {
         //now we want to set our output stream to the client socket's output stream
@@ -152,7 +152,7 @@ public class WebServer {
     /**
      * In the case of file not existing in directory we are sending an error 404 message
      *
-     * @throws IOException
+     * @throws IOException throws io exception
      */
     public void error404() throws IOException {
         //output will now set stream to client's socket output stream
