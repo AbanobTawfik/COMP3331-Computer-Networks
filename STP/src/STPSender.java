@@ -758,41 +758,66 @@ public class STPSender {
             PLD.addPacketCorrupted();
             //we want some output from the sender to see feedback and activity
             System.out.println("corrupt " + count + "window index" + windowIndex + "window size - " + window.size());
-
+            //write the corruption to the log file
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr",
                     "D", calculateRTTWithNoChange());
+            //now we want to create a new payload to send that is corrupted by fliyying a bit
             byte[] copy = new byte[p.getPayload().length];
+            //first we want to copy the payload
             for (int i = 0; i < p.getPayload().length; i++) {
                 copy[i] = p.getPayload()[i];
             }
+            //add 1 to the first payload byte
             copy[0]++;
+            //now we want to make the packet we are sending to be the corrupted packet
             p = new STPPacket(p.getHeader(), copy);
+            //set flag true that we have processed through PLD
             flag = true;
-        } else if (rand.nextDouble() < PLD.getpOrder() && !flag && !reOrder) {
+        }
+        //if we have re-ordering and still havent been processed by the PLD
+        else if (rand.nextDouble() < PLD.getpOrder() && !flag && !reOrder) {
+            //we want to add 1 to number of packets re-ordered
             PLD.addPacketReOrdered();
-//            System.out.println("REORDERED " + count + "window index" + windowIndex + "window size - " + window.size());
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/rord", "D", calculateRTTWithNoChange());
-            //say we have a packet being re-ordered
+            //we want some output from the sender to see feedback and activity
+            System.out.println("reorder " + count + "window index" + windowIndex + "window size - " + window.size());
+            //output the re-ordering to our log file
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/rord",
+                    "D", calculateRTTWithNoChange());
+            //say we have a packet being re-ordered so we cannot re-order till our re-ordered packet is delivered
             reOrder = true;
+            //now we want to make a break point where we transmit this packet to resume order to be the
+            //max-reorder size passed through
             windowreOrder = windowIndex + PLD.getMaxOrder();
+            //set the packet we are re-ordering to the current packet to transmit later and return
             reOrderPacket = p;
             return;
-
-        } else if (rand.nextDouble() < PLD.getpDelay() && !flag) {
+        }
+        //finally if we have delayed packet, AND we havent gone through any of the other checks
+        else if (rand.nextDouble() < PLD.getpDelay() && !flag) {
+            //add 1 to the numebr of delayed packets
             PLD.addPacketDelayed();
-//            System.out.println("DELAYED " + count + "window index" + windowIndex + "window size - " + window.size());
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dely", "D", calculateRTTWithNoChange());
+            //we want some output from the sender to see feedback and activity
+            System.out.println("delay " + count + "window index" + windowIndex + "window size - " + window.size());
+            //write to the log file our delay
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dely",
+                    "D", calculateRTTWithNoChange());
             try {
+                //wait for a time between 0-max delay before we resume sending
                 Thread.sleep(rand.nextInt(PLD.getMaxDelay()));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        //now finally we can deliver our packet  through the same method as sendPacket
+        //set the datagram data to be our formatted packet
         dataOut = p.getPacket();
+        //set the destination for our packet to be the receiver
         dataOut.setAddress(receiverIP);
         dataOut.setPort(receiverPort);
+        //send the packet through our UDP socket
         try {
             socket.send(dataOut);
+            //write to the log file we have sent a packet
             logWrite(size, read.getSequenceNumber(), ackNumber, "snd", "D", calculateRTTWithNoChange());
         } catch (IOException e) {
             e.printStackTrace();
@@ -809,7 +834,8 @@ public class STPSender {
      * @param status         the status
      * @param timeOut        the time out
      */
-    private void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status, int timeOut) {
+    private void logWrite(int length, int sequenceNumber, int ackNumber,
+                          String sndOrReceive, String status, int timeOut) {
         float timePassed = timer.timePassed() / 1000;
         try {
             timeOut = socket.getSoTimeout();
