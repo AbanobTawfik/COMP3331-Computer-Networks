@@ -80,8 +80,8 @@ public class STPSender {
 
     /**
      * This method will be used to create an instance of the STPSender, it will pass in the variables from the program
-     * arguments passed through from the user, and will create a sender (server) that will match the behaviour passed in through
-     * user input
+     * arguments passed through from the user, and will create a sender (server) that will match the behaviour passed
+     * in through user input
      *
      * @param args program arguements passed through
      */
@@ -124,7 +124,8 @@ public class STPSender {
         this.MWS = Integer.parseInt(args[3]);
         this.MSS = Integer.parseInt(args[4]);
         this.gamma = Float.parseFloat(args[5]);
-        //set our maximum window size to be the floor division of the maximum window size divided by maximum segment size
+        //set our maximum window size to be the floor division of the maximum
+        // window size divided by maximum segment size
         this.windowSize = Math.floorDiv(MWS, MSS);
         //if the window size is less than or equal to 1 due to botched arguements passed through
         if (windowSize <= 1) {
@@ -147,7 +148,8 @@ public class STPSender {
         long seed = Long.parseLong(args[13]);
         //create a new PLD module that contains multiple functionallity, see class unreliability
         this.PLD = new Unreliability(pDrop, pDuplicate, pCorrupt, pOrder, maxOrder, pDelay, maxDelay, seed);
-        //now we want to initialise our log file with the name sender_log.txt" inside a directory for our files log file
+        //now we want to initialise our log file
+        // with the name sender_log.txt" inside a directory for our files log file
         try {
             //we want to initialise a directory for the requested file's log file
             File dir = new File("log_files_" + fileRequested);
@@ -172,7 +174,6 @@ public class STPSender {
             //write and flush to log file
             logFile.write(s);
             logFile.flush();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -183,7 +184,8 @@ public class STPSender {
     /**
      * this method will be called from the Sender where the entire program will run
      * this method will first begin the timer, perform 3 way handshake, send the data to the receiver,
-     * terminate the connection and finally print the statistics to the log file in a summary. at the end of this function
+     * terminate the connection and finally print the statistics to the log file in a summary.
+     * at the end of this function
      * an exit with status 0 is called to indicate file was sent correctly!
      */
     public void operate() {
@@ -206,17 +208,19 @@ public class STPSender {
     /**
      * this method will be called from the Sender where the entire program will run
      * this method will first begin the timer, perform 3 way handshake, send the data to the receiver,
-     * terminate the connection and finally print the statistics to the log file in a summary. at the end of this function
-     * an exit with status 0 is called to indicate file was sent correctly!
+     * terminate the connection and finally print the statistics to the log file in a summary.
+     * at the end of this function an exit with status 0 is called to indicate file was sent correctly!
      */
     private void prepareFile() {
         //first we want to check if the file exists within the current directory
-        //if the file doesn't exist in current directory, we exit with error status and a easy to understand error message
+        //if the file doesn't exist in current directory,
+        // we exit with error status and a easy to understand error message
         if (!containsFile(fileRequested)) {
             System.out.println("The file requested does not exist in this directory");
             System.exit(1);
         } else {
-            //we want to create a list of ready to send packets (since they are file data we want to turn off most flags)
+            //we want to create a list of ready to send packets
+            //(since they are file data we want to turn off most flags)
             try {
                 //now we want to create our file input stream to read the file in
                 file = new FileInputStream(fileRequested);
@@ -286,7 +290,8 @@ public class STPSender {
         //send the packet to the receiver
         sendPacket(packet);
         //write the output to log file
-        logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S", (estimatedRTT + (int) (gamma) * devRTT));
+        logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S",
+                (estimatedRTT + (int) (gamma) * devRTT));
         //now we want to wait for the SYN ACK back, so we wait in a while true loop
         while (true) {
             try {
@@ -297,7 +302,8 @@ public class STPSender {
                 dataIn.setPort(receiverPort);
                 //attempt to receive packet from the receiver
                 socket.receive(dataIn);
-                //if we have received data before the timeout, we want to convert the byte packet into a readable packet
+                //if we have received data before the timeout
+                //we want to convert the byte packet into a readable packet
                 r = new ReadablePacket(dataIn);
                 //if we received a SYN and ACK (SYNACK)
                 if (r.isSYN() && r.isACK()) {
@@ -306,7 +312,8 @@ public class STPSender {
                     //get the acknumber from the receiver's sequence number
                     ackNumber = r.getSequenceNumber();
                     //write output to log file
-                    logWrite(0, r.getSequenceNumber(), 1, "rcv", "SA", (estimatedRTT + (int) (gamma) * devRTT));
+                    logWrite(0, r.getSequenceNumber(), 1, "rcv", "SA",
+                            (estimatedRTT + (int) (gamma) * devRTT));
                     //break from the while true loop
                     break;
                 }
@@ -320,7 +327,8 @@ public class STPSender {
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
                 //write the output to the log file
-                logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S", (estimatedRTT + (int) (gamma) * devRTT));
+                logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S",
+                        (estimatedRTT + (int) (gamma) * devRTT));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -331,7 +339,8 @@ public class STPSender {
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
         //write output to log file
-        logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber + 1, "snd", "A", (estimatedRTT + (int) (gamma) * devRTT));
+        logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber + 1,
+                "snd", "A", (estimatedRTT + (int) (gamma) * devRTT));
         //display packet info to show successful handshake debug reasons
         r.display();
     }
@@ -393,81 +402,130 @@ public class STPSender {
             }
         }).start();
 
+        //start a new thread for receiving ACKS from our packet, and clear the window
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
+                    //same exit condition as the sender thread, once we have acked every packet
                     if ((count <= 1 && window.size() == 0)) {
                         break;
                     }
                     try {
+                        //set the send time as time before we receive packet for RTT calculation
                         sendTime = (int) System.currentTimeMillis();
+                        //we want to set the address we are receiving data from, to be the receiver port + IP
                         dataIn.setAddress(receiverIP);
                         dataIn.setPort(receiverPort);
+                        //attempt to receive data from receiver within timeout range
                         socket.receive(dataIn);
+                        //now we want to create a readable version of the packet
                         r = new ReadablePacket(dataIn);
-                        //System.out.println("ACK - " + r.isACK() + " ack number - " + r.getAcknowledgemntNumber());
+                        //if the packet is ACK = no corruption successfully received
                         if (r.isACK()) {
+                            //fast retransmit checks
+                            //if there is nothing in the dupacks list, we want to add the current ack number
+                            //to the dupacks list
                             if (dupAcks.size() == 0) {
                                 dupAcks.add(r.getAcknowledgemntNumber());
                             }
+                            //if the size of dupacks is 3, we want to perform a fast-retransmit
+                            //and clear the dupacks list
                             if (dupAcks.size() == 3) {
                                 fastRetransmit();
                                 dupAcks.clear();
                             }
+                            //otherwise we want to check if we have a duplicate ack
+                            // by comparing it to the current list
                             if (dupAcks.size() == 1 || dupAcks.size() == 2) {
+                                //set a flag for checking if we have a duplicate, upon unique we break and reset
                                 boolean flag = true;
+                                //scan through list of dupack numbers
                                 for (Integer i : dupAcks) {
+                                    //if the acknowledgment number is not the same to any of the index's
                                     if (r.getAcknowledgemntNumber() != i) {
+                                        //we want to set flag to false and exit
                                         flag = false;
                                         break;
                                     }
                                 }
+                                //if the flag was unchanged (same as all other values in dupacks list)
                                 if (flag) {
+                                    //add to the statistics a dupack
                                     PLD.addDuplicateACKS();
+                                    //add the current ack number to the list increasing the size
                                     dupAcks.add(r.getAcknowledgemntNumber());
-                                } else {
+                                }
+                                //otherwise we want to reset the dupAcks as we have a unique number now
+                                else {
                                     dupAcks.clear();
+                                    //and we also want to initialise our new dupack list with the current ack number
                                     dupAcks.add(r.getAcknowledgemntNumber());
                                 }
                             }
+                            //now that fast re-transmit is taken care of, since we had an ACK
+                            //we want to scan through the window to see which packet in the window we are removing
                             for (ReadablePacket read : window) {
+                                //if the ack number is the same as the sequence number of the packet in the window
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
-                                    //estimatedRTT = (int) System.currentTimeMillis() - sendTime;
+                                    //we want to update our RTT from the calculation
                                     socket.setSoTimeout(calculateRTT());
+                                    //we want to update the acknumber to be the sequence number of the packet we
+                                    //are removing
                                     ackNumber = r.getSequenceNumber();
+                                    //remove the packet from the window
                                     window.remove(read);
+                                    //if we have a duplicate ACK we want to do a special log print
+                                    //otherwise we print normally to the logfile
                                     if (dupAcks.size() > 1) {
-                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv/DA", "A", estimatedRTT);
+                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv/DA",
+                                                "A", estimatedRTT);
                                     } else {
-                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv", "A", estimatedRTT);
+                                        logWrite(0, ackNumber, r.getAcknowledgemntNumber(), "rcv",
+                                                "A", estimatedRTT);
                                     }
                                 }
                             }
+                            //otherwise continue to go to next to keep scanning
                             continue;
-                        } else {
+                        }
+                        //otherwise this implies ACK = false so we want to re-transmit
+                        else {
+                            //first we want to scan through the window to find the sequence number of our NAK
                             for (ReadablePacket read : window) {
+                                //if the acknowledgement number is equal to the sequence number of the
+                                //packet in the window
                                 if (r.getAcknowledgemntNumber() == read.getSequenceNumber()) {
+                                    //we want to create the packet in binary form from our readable version
                                     packet = new STPPacket(read);
+                                    //send the packet through the PLD module for re-transmit
                                     PLDSend(packet);
-                                    logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/RXT", "D", calculateRTTWithNoChange());
-                                    //System.out.println("time-out: Retransmission -- " + read.getSequenceNumber());
+                                    //we want to print to log file a re-transmit and break from the loop
+                                    logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(),
+                                            "snd/RXT", "D", calculateRTTWithNoChange());
                                     break;
                                 }
                             }
-
-                            //System.out.println("time-out: NAK");
-
                         }
-                    } catch (SocketTimeoutException e) {
+                    }
+                    //in the case of timeout from our socket, we want to perform a re-transmission
+                    //of the first packet inside the window
+                    catch (SocketTimeoutException e) {
+                        //first we want to add to our counter of timeouts
                         PLD.addPacketsTimedOut();
+                        //we want to get the first packet from the window to re-transmit
                         ReadablePacket retransmit = window.peek();
+                        //since we are multi-threading we want to see if the packet was acked within this time
+                        //to avoid a null re-transmit packet so we go next
                         if (null == retransmit)
                             continue;
+                        //create the binary packet from the readable packet form
                         packet = new STPPacket(retransmit);
+                        //send the packet through the PLD module
                         PLDSend(packet);
-                        logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(), "tout/RXT", "D", calculateRTTWithNoChange());
-                        //System.out.println("time-out: Retransmission -- " + retransmit.getSequenceNumber());
+                        //write the retransmit to the log file
+                        logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(),
+                                "snd/RXT", "D", calculateRTTWithNoChange());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -475,10 +533,14 @@ public class STPSender {
             }
         }).start();
 
+        //in order to not return before the threads finish execution, we want to have a loop that waits for the
+        //same exit condition
         while (true) {
+            //same exit condition as both threads
             if ((count <= 1 && window.size() == 0)) {
                 break;
             }
+            //otherwise sleep for 1s
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -488,25 +550,36 @@ public class STPSender {
     }
 
     /**
-     *
+     * The termination procedure will be a 4-way closure, initially we send our fin to the sender side to
+     * inform intent of closure, after we wait for an ACK in a while loop from the receiver and then wait
+     * for the FIN from the receiver side. after we send back and ACK for the FIN.
      */
     private void terminate() {
-        //send out the FIN
-        //sequenceNumber = sequenceNumber - (MSS - finalPacketSize);
+        //send out the FIN with no ACK and dont mind the silly DUP flag
         FIN = true;
         DUP = false;
         ACK = false;
+        //create the header and empty payload for our packet
         header = new STPPacketHeader(0, sequenceNumber, 1, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
+        //send the FIN packet to the receiver
         sendPacket(packet);
-        logWrite(0, sequenceNumber - (MSS - finalPacketSize), 1, "snd", "F", calculateRTTWithNoChange());
-        //now wait for the FIN ACK
+        //write the FIN to the log file
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize), 1, "snd",
+                "F", calculateRTTWithNoChange());
+        //now wait for the ACK from the receiver side
         while (true) {
+            //set a timeout of 10ms waiting for the ack, otherwise we keep re-sending our FIN
+            //one timeout re-transmit exact same packet
             try {
+                //set timeout of 10ms and attempt to receive data from the socket
                 socket.setSoTimeout(10);
                 socket.receive(dataIn);
-            } catch (SocketTimeoutException e1) {
+            }
+            //on timeout we want to re-transmit our FIN to the receiver
+            catch (SocketTimeoutException e1) {
+                //create exact same packet + send it to the receiver
                 FIN = true;
                 DUP = false;
                 ACK = false;
@@ -514,51 +587,69 @@ public class STPSender {
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
-                logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 1, "snd", "F", calculateRTTWithNoChange());
+                //print resent packet to the logfile
+                logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 1,
+                        "snd", "F", calculateRTTWithNoChange());
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //otherwise when we receive our ACK from our fin
             r = new ReadablePacket(dataIn);
             if (r.isFIN() && r.isACK()) {
-                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1, "rcv", "A", calculateRTTWithNoChange());
+                //we want to write to our log file, and break
+                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1,
+                        "rcv", "A", calculateRTTWithNoChange());
                 break;
             }
         }
+        //now we want to remove our timeout for the rest of process
         try {
             socket.setSoTimeout(0);
         } catch (SocketException e) {
             e.printStackTrace();
         }
-        //now wait for the FIN
+        //now wait for the FIN from the receiver side
         while (true) {
+            //attempt to receive the FIN from the receiver side as the 3rd stage in our 4 way closure
             try {
                 socket.receive(dataIn);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //turn the received packet in a readable form
             r = new ReadablePacket(dataIn);
+            //if the packet received is a FIN from the receiver
             if (r.isFIN() && !r.isACK()) {
-                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1, "rcv", "F", calculateRTTWithNoChange());
+                //we want to write to log file and break
+                logWrite(0, r.getSequenceNumber(), sequenceNumber - (MSS - finalPacketSize) + 1,
+                        "rcv", "F", calculateRTTWithNoChange());
                 break;
             }
         }
-        //send back an FIN ACK to the client
+        //now finally we want to send back our last ACK packet
+        //create our header + empty payload for our packet to send to the receiver
         FIN = true;
         ACK = true;
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
+        //send the packet to the receiver
         sendPacket(packet);
-        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 2, "snd", "A", calculateRTTWithNoChange());
+        //write to the log file our final ack
+        logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 2, "snd",
+                "A", calculateRTTWithNoChange());
     }
 
     /**
-     * @param fileName
-     * @return
+     * This method will be used to check if the file requested exists within the directory
+     *
+     * @param fileName the file we are checking
+     * @return true if the file exists in the current directory, false if not
      */
     private boolean containsFile(String fileName) {
         //scan through directory
         for (File file : allFiles)
+            //if the current file has the same name as the one requested we return true
             if (file.getName().equals(fileName))
                 return true;
         //otherwise return false if no files match
@@ -566,26 +657,41 @@ public class STPSender {
     }
 
     /**
-     * @param payload
-     * @return
+     * This method will be a simple one's complement checksum, it will take the current payload
+     * sum all the bytes within the checksum, and finally return the one's complement of that sum
+     *
+     * @param payload the payload (byte array) we are transmitting
+     * @return the checksum value of our payload
      */
     private int checksum(byte[] payload) {
+        //start a running count
         int sum = 0;
+        //for each byte in the payload array
         for (byte byteData : payload) {
+            //cumulatively add to the sum
             sum += (int) byteData;
         }
+        //take the one's complement of that sum
         sum = ~sum;
+        //return the one's complement of our sum
         return sum;
     }
 
     /**
-     * @param p
+     * This method will be a safe send where it will deliver the packet to the receiver with no
+     * PLD effect. (this will not simulate any errors in sending procedure)
+     *
+     * @param p the packet we are sending to the receiver
      */
     private void sendPacket(STPPacket p) {
+        //we want to add 1 to the number of packets transferred
         PLD.addPacketsTransferred();
+        //set the datagram for output to be the formatted packet we are sending
         dataOut = p.getPacket();
+        //set the address for the receiver that we are sending to
         dataOut.setAddress(receiverIP);
         dataOut.setPort(receiverPort);
+        //send the packet through our UDP socket
         try {
             socket.send(dataOut);
         } catch (IOException e) {
@@ -594,36 +700,67 @@ public class STPSender {
     }
 
     /**
-     * @param p
+     * This method will be used to send a packet through a channel whilst simulating unreliability in the forms of
+     * corruption, delays, drop, duplicates and re-ordering. we will use our PLD module to simulate the unreliability
+     * this will simply emulate sending a packet through an unreliable channel
+     *
+     * @param p the packet we are attempting to send through an unreliable channel
      */
     private void PLDSend(STPPacket p) {
+        //add to our PLD statistic counter
         PLD.addPLDTransferred();
         PLD.addPacketsTransferred();
+        //now we want to create a readable version of our packet for PLD parsing
         ReadablePacket read = new ReadablePacket(p.getPacket());
+        //create a temporary value for our size to be 0 in order to workout the size of the payload
+        //in the packet
         int size = 0;
+        //if this is the last packet in the list
         if (read.getSequenceNumber() == filePackets.get(filePackets.size() - 1).getSequenceNumber()) {
+            //set the size to be the final packet size
             size = finalPacketSize;
         } else {
+            //otherwise we use the MSS
             size = MSS;
         }
+        //set a flag to see if any PLD module has been checked
         boolean flag = false;
+        //if we have a case of drop
         if (rand.nextDouble() < PLD.getpDrop()) {
-//            System.out.println("DROPPED " + count + "window index" + windowIndex + "window size - " + window.size());
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "drop", "D", calculateRTTWithNoChange());
+            //we want some output from the sender to see feedback and activity
+            System.out.println("Drop - " + count + "window index" + windowIndex + "window size - " + window.size());
+            //write the drop to the lof file
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "drop", "D",
+                    calculateRTTWithNoChange());
+            //add 1 to the number of packets dropped and return without sending (simulating packet drop)
             PLD.addPacketDropped();
-            //logWrite(dataOut.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, filePackets.get(windowIndex).getSequenceNumber(), ackNumber, "drop", "D", calculateRTTWithNoChange());
             return;
-        } else if (rand.nextDouble() < PLD.getpDuplicate() && !flag) {
+        }
+        //otherwise if we have not dropped the packet, and we have the case of duplicate
+        else if (rand.nextDouble() < PLD.getpDuplicate() && !flag) {
+            //we want to add 1 to number of packets duplicated
             PLD.addPacketDuplicated();
-//            System.out.println("DUPLICATED " + count + "window index" + windowIndex + "window size - " + window.size());
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dup", "D", calculateRTTWithNoChange());
+            //we want some output from the sender to see feedback and activity
+            System.out.println("Duplicate " + count + "window index" + windowIndex + "window size - " + window.size());
+            //write the duplicate to the log file
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dup", "D",
+                    calculateRTTWithNoChange());
+            //add 1 to the number of packets transferred aswell since we are transmitting another packet
             PLD.addPLDTransferred();
+            //send the packet through our safe method to emulate duplication
             sendPacket(p);
+            //set our flag to be true since we dont want to perform any other PLD errors
             flag = true;
-        } else if (rand.nextDouble() < PLD.getpCorrupt() && !flag) {
+        }
+        //if we have a case of corruption and we didn't get any other PLD checks above
+        else if (rand.nextDouble() < PLD.getpCorrupt() && !flag) {
+            //add 1 to the number of packets corrupted
             PLD.addPacketCorrupted();
-//            System.out.println("corrupted " + count + "window index" + windowIndex + "window size - " + window.size());
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr", "D", calculateRTTWithNoChange());
+            //we want some output from the sender to see feedback and activity
+            System.out.println("corrupt " + count + "window index" + windowIndex + "window size - " + window.size());
+
+            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr",
+                    "D", calculateRTTWithNoChange());
             byte[] copy = new byte[p.getPayload().length];
             for (int i = 0; i < p.getPayload().length; i++) {
                 copy[i] = p.getPayload()[i];
