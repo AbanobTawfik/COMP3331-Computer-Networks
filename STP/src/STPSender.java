@@ -201,6 +201,12 @@ public class STPSender {
         System.exit(0);
     }
 
+    /**
+     * this method will be called from the Sender where the entire program will run
+     * this method will first begin the timer, perform 3 way handshake, send the data to the receiver,
+     * terminate the connection and finally print the statistics to the log file in a summary. at the end of this function
+     * an exit with status 0 is called to indicate file was sent correctly!
+     */
     private void prepareFile() {
         //first we want to check if the file exists within the current directory
         //if the file doesn't exist in current directory, we exit with error status and a easy to understand error message
@@ -246,59 +252,91 @@ public class STPSender {
                 if (read <= 0) {
                     break;
                 }
-                //now we want to store all these payloads into packet
+                //now we want to store the payload into a packet creating its header first
                 header = new STPPacketHeader(checksum(packetPayload), sequenceNumber, 0, IP,
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
+                //increment sequence number to be stored into packet
                 sequenceNumber += MSS;
+                //create our packet from the payload and header
                 packet = new STPPacket(header, packetPayload);
+                //and also create a readable version of the packet that can go between readable and packet
                 r = new ReadablePacket(packet.getPacket());
+                //add the readable version of the packet to the file packets
                 filePackets.add(r);
             }
         }
     }
 
+    /**
+     * this method will perform a 3-way handshake with the receiver, this begins by the sender sending an
+     * SYN packet. if no response is received it will keep re-transmitting the SYN packet, after sending the SYN
+     * the sender will wait in a while true loop waiting for the SYNACK. upon receiving the SYNACK from the sender
+     * it will then finish the handshake by sending an ACK to the receiver confirming the handshake was successful
+     */
     private void handshake() {
+        //set SYN to be true for first packet sent
         SYN = true;
+        //create a header with no checksum, initial sequence number as 0, and ack number as 0
         header = new STPPacketHeader(0, filePackets.get(0).getSequenceNumber(), 0, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
+        //create a packet with empty payload to send to receiver
         packet = new STPPacket(header, new byte[0]);
+        //send the packet to the receiver
         sendPacket(packet);
+        //write the output to log file
         logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S", (estimatedRTT + (int) (gamma) * devRTT));
-        //now we want for SYN ACK back
+        //now we want to wait for the SYN ACK back, so we wait in a while true loop
         while (true) {
             try {
+                //set the timeout to be the initial timeout value
                 socket.setSoTimeout(estimatedRTT + (int) (gamma) * devRTT);
+                //set the address from where we receiver our data to be from the receiver
                 dataIn.setAddress(receiverIP);
                 dataIn.setPort(receiverPort);
+                //attempt to receive packet from the receiver
                 socket.receive(dataIn);
+                //if we have received data before the timeout, we want to convert the byte packet into a readable packet
                 r = new ReadablePacket(dataIn);
+                //if we received a SYN and ACK (SYNACK)
                 if (r.isSYN() && r.isACK()) {
+                    //set ACK as true
                     ACK = true;
+                    //get the acknumber from the receiver's sequence number
                     ackNumber = r.getSequenceNumber();
+                    //write output to log file
                     logWrite(0, r.getSequenceNumber(), 1, "rcv", "SA", (estimatedRTT + (int) (gamma) * devRTT));
+                    //break from the while true loop
                     break;
                 }
-            } catch (SocketTimeoutException e) {
+            }
+            //if the we do not receive a reply from the receiver within timeout
+            catch (SocketTimeoutException e) {
+                //we want to send over the exact same SYN packet as above
                 SYN = true;
                 header = new STPPacketHeader(0, sequenceNumber, 0, IP,
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
+                //write the output to the log file
                 logWrite(0, filePackets.get(0).getSequenceNumber(), 0, "snd", "S", (estimatedRTT + (int) (gamma) * devRTT));
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
-        //end handshake with the ACK
+        //end handshake with the ACK, send back packet with header containing updated flags (ACK from SYNACK)
         header = new STPPacketHeader(0, sequenceNumber, 0, IP,
                 receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         sendPacket(packet);
+        //write output to log file
         logWrite(0, filePackets.get(0).getSequenceNumber() + 1, ackNumber + 1, "snd", "A", (estimatedRTT + (int) (gamma) * devRTT));
+        //display packet info to show successful handshake debug reasons
         r.display();
     }
 
+    /**
+     *
+     */
     private void sendData() {
         count = filePackets.size() + 1;
         //sender thread
@@ -427,6 +465,9 @@ public class STPSender {
         }
     }
 
+    /**
+     *
+     */
     private void terminate() {
         //send out the FIN
         //sequenceNumber = sequenceNumber - (MSS - finalPacketSize);
@@ -489,6 +530,10 @@ public class STPSender {
         logWrite(0, sequenceNumber - (MSS - finalPacketSize) + 1, 2, "snd", "A", calculateRTTWithNoChange());
     }
 
+    /**
+     * @param fileName
+     * @return
+     */
     private boolean containsFile(String fileName) {
         //scan through directory
         for (File file : allFiles)
@@ -507,7 +552,9 @@ public class STPSender {
         return sum;
     }
 
-
+    /**
+     * @param p
+     */
     private void sendPacket(STPPacket p) {
         PLD.addPacketsTransferred();
         dataOut = p.getPacket();
@@ -520,6 +567,9 @@ public class STPSender {
         }
     }
 
+    /**
+     * @param p
+     */
     private void PLDSend(STPPacket p) {
         PLD.addPLDTransferred();
         PLD.addPacketsTransferred();
@@ -596,7 +646,7 @@ public class STPSender {
      * @param status         the status
      * @param timeOut        the time out
      */
-    public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status, int timeOut) {
+    private void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status, int timeOut) {
         float timePassed = timer.timePassed() / 1000;
         String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s %-15s %-15s\n", sndOrReceive
                 , timePassed, status, sequenceNumber, length, ackNumber, timeOut, window.size());
@@ -654,7 +704,7 @@ public class STPSender {
      *
      * @return the int
      */
-    public int calculateRTT() {
+    private int calculateRTT() {
         int tmpEstimatedRTT = estimatedRTT;
         int tmpDevRTT = devRTT;
         estimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
@@ -673,7 +723,7 @@ public class STPSender {
     /**
      * Fast retransmit.
      */
-    public void fastRetransmit() {
+    private void fastRetransmit() {
         PLD.addFastRetransmissions();
         windowIndex -= windowSize;
         count += windowSize;
@@ -684,7 +734,7 @@ public class STPSender {
      *
      * @return the int
      */
-    public int calculateRTTWithNoChange() {
+    private int calculateRTTWithNoChange() {
         int tmpEstimatedRTT = estimatedRTT;
         tmpEstimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
         tmpEstimatedRTT += (int) (0.25) * ((System.currentTimeMillis() - sendTime));
@@ -698,7 +748,7 @@ public class STPSender {
     /**
      * Finish log file.
      */
-    public void finishLogFile() {
+    private void finishLogFile() {
         String s = "------------------------------------------------------------------------------------------------------------------\n";
         try {
             logFile.write(s);
