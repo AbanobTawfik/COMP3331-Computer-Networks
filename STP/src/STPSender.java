@@ -372,15 +372,20 @@ public class STPSender {
                             //turn the flag on that re-ordering is no longer on to allow for more re-ordering
                             reOrder = false;
                         }
+                        //we want to get create a new packet from the current window index we are pointing to
                         packet = new STPPacket(filePackets.get(windowIndex));
                         try {
+                            //now we want to use our thread-safe method to add that packet into the window
+                            //to keep track of the packet
                             window.put(filePackets.get(windowIndex));
+                            //decrement our packets remaining counter
                             count--;
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                        //increment the index to point to the next packet
                         windowIndex++;
-                        //if we get a drop then we want to just go to next packet and not send --> drop packet
+                        //now we want to pass the packet through the PLD module
                         PLDSend(packet);
 
                     }
@@ -471,7 +476,7 @@ public class STPSender {
         }).start();
 
         while (true) {
-            if ((count <= 1 && window.size() == 0) ) {
+            if ((count <= 1 && window.size() == 0)) {
                 break;
             }
             try {
@@ -561,7 +566,6 @@ public class STPSender {
     }
 
     /**
-     *
      * @param payload
      * @return
      */
@@ -759,7 +763,7 @@ public class STPSender {
     private void fastRetransmit() {
         PLD.addFastRetransmissions();
         windowIndex -= windowSize;
-        if(windowIndex <= 0){
+        if (windowIndex <= 0) {
             windowIndex = 0;
             count = filePackets.size();
             return;
@@ -780,9 +784,9 @@ public class STPSender {
         tmpDevRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
         tmpDevRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
-        if((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) > 60000)
+        if ((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) > 60000)
             return 59999;
-        if((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) <= 0)
+        if ((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) <= 0)
             return 10;
         return (tmpEstimatedRTT + (int) this.gamma * tmpDevRTT);
     }
