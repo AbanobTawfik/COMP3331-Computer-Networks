@@ -825,87 +825,107 @@ public class STPSender {
     }
 
     /**
-     * Log write.
+     * this method will write to the log file based on the paramters passed through, it is used to
+     * print formatted data correctly to the log file.
      *
-     * @param length         the length
-     * @param sequenceNumber the sequence number
-     * @param ackNumber      the ack number
-     * @param sndOrReceive   the snd or receive
-     * @param status         the status
-     * @param timeOut        the time out
+     * @param length         the length of the payload we are sending/receiving
+     * @param sequenceNumber the sequence number of the packet we are sending/receiving
+     * @param ackNumber      the ack number of the packet we are sending/receiving
+     * @param sndOrReceive   the snd or receive to indicate if we are sending or receiving data
+     * @param status         the status if we are acknowledging or delivering data, or SYN/FIN
+     * @param timeOut        the time out (ignore we dont want this on our log file anymore)
      */
     private void logWrite(int length, int sequenceNumber, int ackNumber,
                           String sndOrReceive, String status, int timeOut) {
+        //first we want to get the time passed from the timer, in seconds by dividing the time passed by 1000
+        //since timepassed is in milliseconds
         float timePassed = timer.timePassed() / 1000;
+        //ignore this is not actually needed in the log as instruction from Lecturer
         try {
             timeOut = socket.getSoTimeout();
         } catch (SocketException e) {
             e.printStackTrace();
         }
+        //create our formatted string to seperate in spaced columns to print out all paramters passed through
         String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", sndOrReceive
                 , timePassed, status, sequenceNumber, length, ackNumber);
         try {
+            //write the formatted string to the log file
             logFile.write(s);
+            //flush to allow for further writing
             logFile.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-
     /**
-     * Packet index int.
+     * This method will return the index of the packet inside the list of file packets
      *
-     * @param r the r
-     * @return the int
+     * @param r the packet we are finding the index of
+     * @return the index of the packet we are locating
      */
     public int packetIndex(ReadablePacket r) {
+        //simply return index of packet
         return filePackets.indexOf(r);
     }
 
     /**
-     * Gets nack packet.
+     * this method will return the packet inside the list of packet that was found to be nacked
+     * this allows for easier location of our re-transmission packet in the list of packets
      *
-     * @param r the r
-     * @return the nack packet
+     * @param r the packet we are attempting to receive based off our ACK from receiver
+     * @return the packet which is not acknowledge
      */
     public ReadablePacket getNACKPacket(ReadablePacket r) {
+        //scan through the list of packets of the file
         for (ReadablePacket read : filePackets) {
+            //if the sequence number of the packet is equal to the acknowledgement number we received
             if (read.getSequenceNumber() == r.getAcknowledgemntNumber()) {
+                //return the packet
                 return read;
             }
         }
+        //else the packet doesn't exist and return null
         return null;
     }
 
     /**
-     * Clear window before last ack.
+     * This method will clear all unacked packets before the last ack received, to simulate cumulative ACK.
      *
-     * @param ack the ack
+     * @param ack the ack we are removing from the window and the threshold, we remove all packets before this
      */
     public void clearWindowBeforeLastAck(int ack) {
+        //scan through current window
         for (ReadablePacket r : window) {
+            //if the ack number is less than the current ACK + MSS
             if (r.getAcknowledgemntNumber() < ack + MSS) {
-                //logWrite(0,1,r.getSequenceNumber(),"rcv","A");
+                //remove the packet from the window
                 window.remove(r);
             }
         }
     }
 
     /**
-     * Calculate rtt int.
+     * this method will caclulate the timeout for the socket on the calculation provided from the text book
+     * first it will calculate estimated RTT from the previous estimated RTT and
+     * a multiplication of the calculated RTT, to account for deviation we also modify the devRTT value based
+     * on estimated RTT and the measured RTT
      *
-     * @return the int
+     * @return the timeout value for our socket whilst receiving
      */
     private int calculateRTT() {
+        //first we want to hold the current RTT value sincase the timeout > 60000 or < 0
         int tmpEstimatedRTT = estimatedRTT;
         int tmpDevRTT = devRTT;
+        //using formula from textbook we compute devRTT and estimatedRTT
         estimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
         estimatedRTT += (int) (0.25) * ((System.currentTimeMillis() - sendTime));
         devRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
         devRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
+        //if the RTT is greater than a minute or less than 0, we want to refactor our RTT to previous values
+        //or modify
         if ((estimatedRTT + (int) this.gamma * devRTT) > 60000) {
             estimatedRTT = tmpEstimatedRTT;
             devRTT = tmpDevRTT;
@@ -917,36 +937,51 @@ public class STPSender {
             devRTT = 25;
             return 10;
         }
+        //return estimatedRTT + gamma*devRTT
         return (estimatedRTT + (int) this.gamma * devRTT);
     }
 
     /**
-     * Fast retransmit.
+     * this method will move back the index windowSize amount, and increase count to indicate we need
+     * to transmit these packets again
      */
     private void fastRetransmit() {
+        //add 1 to number of fast retransmissions occured
         PLD.addFastRetransmissions();
+        //move back the window index the size of the window
         windowIndex -= windowSize;
+        //if the window index is moved back before 0 we want to cap it at 0, and reset counter
         if (windowIndex <= 0) {
             windowIndex = 0;
             count = filePackets.size();
             return;
         }
+        //increase number of packets left to send
         count += windowSize;
     }
 
     /**
-     * Calculate rtt with no change int.
+     * this method will caclulate the timeout for the socket WITHOUT
+     * MODIFYING THE ESTIMATED/DEVRTT FOR DEBUG PURPOSES on the calculation provided from the text book
+     * first it will calculate estimated RTT from the previous estimated RTT and
+     * a multiplication of the calculated RTT, to account for deviation we also modify the devRTT value based
+     * on estimated RTT and the measured RTT
      *
-     * @return the int
+     * @return the timeout value for our socket whilst receiving without modifiying the RTT values
      */
     private int calculateRTTWithNoChange() {
+        //first we want to hold the current RTT value to not modify it in calculation
         int tmpEstimatedRTT = estimatedRTT;
+        //perform the calculations on estimated RTT
         tmpEstimatedRTT = (int) ((1 - 0.25) * estimatedRTT);
         tmpEstimatedRTT += (int) (0.25) * ((System.currentTimeMillis() - sendTime));
         int tmpDevRTT = devRTT;
         tmpDevRTT = (int) ((1 - 0.25) * devRTT);
         int subtract = (int) ((System.currentTimeMillis() - sendTime));
+        //cperform the calculations on devRTT
         tmpDevRTT += (int) (0.25 * (Math.abs(subtract - estimatedRTT)));
+        //if the RTT is greater than a minute or less than 0, we want to refactor our RTT to previous values
+        //or modify
         if ((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) > 60000)
             return 59999;
         if ((tmpEstimatedRTT + (int) this.gamma * tmpDevRTT) <= 0)
@@ -955,46 +990,71 @@ public class STPSender {
     }
 
     /**
-     * Finish log file.
+     * This method will print the statistics of the sender side to the log file after successful termination
      */
     private void finishLogFile() {
+        //seperate to indicate statistic section
         String s = "--------------------------------------------------------------------------\n";
         try {
+            //write the seperator to the log file
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Size of the file (in Bytes)", sequenceNumber - (MSS - finalPacketSize));
+            //print the size of packets to the log file
+            s = String.format("%-50s %-20s\n", "Size of the file (in Bytes)",
+                    sequenceNumber - (MSS - finalPacketSize));
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Segments transmitted (including drop & RXT)", PLD.getPacketsTransferred());
+            //print the transmitted segments to the log file
+            s = String.format("%-50s %-20s\n", "Segments transmitted (including drop & RXT)",
+                    PLD.getPacketsTransferred());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments handled by PLD", PLD.getPLDTransferredPackets());
+            //print the number of segments handled by the PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments handled by PLD",
+                    PLD.getPLDTransferredPackets());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments dropped", PLD.getPacketsDropped());
+            //print the number of segments dropped to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments dropped",
+                    PLD.getPacketsDropped());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments Corrupted", PLD.getPacketsCorrupted());
+            //print the number of segments corrupted by the PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments Corrupted",
+                    PLD.getPacketsCorrupted());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments Re-ordered", PLD.getPacketsReordered());
+            //print the number of segments re-ordered by the PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments Re-ordered",
+                    PLD.getPacketsReordered());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments Duplicated", PLD.getPacketsDuplicated());
+            //print the number of segments duplicated by the PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments Duplicated",
+                    PLD.getPacketsDuplicated());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Segments Delayed", PLD.getPacketsDelayed());
+            //print the number of segments delayed by the PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of Segments Delayed",
+                    PLD.getPacketsDelayed());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of Retransmissions due to TIMEOUT", PLD.getPacketsTimedOut());
+            //print the number of segments retransmitted due to timeout to the log file
+            s = String.format("%-50s %-20s\n", "Number of Retransmissions due to TIMEOUT",
+                    PLD.getPacketsTimedOut());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of FAST RETRANSMISSION", PLD.getFastRetransmissions());
+            //print the number of fast re-transmissions PLD to the log file
+            s = String.format("%-50s %-20s\n", "Number of FAST RETRANSMISSION",
+                    PLD.getFastRetransmissions());
             logFile.write(s);
             logFile.flush();
-            s = String.format("%-50s %-20s\n", "Number of  DUP ACKS received", PLD.getDuplicateACKS());
+            //print the number of DUP ACKS received to the log file
+            s = String.format("%-50s %-20s\n", "Number of  DUP ACKS received",
+                    PLD.getDuplicateACKS());
             logFile.write(s);
             logFile.flush();
+            //print the final seperator after the statistics to the log file
             s = "--------------------------------------------------------------------------\n";
             logFile.write(s);
             logFile.flush();
