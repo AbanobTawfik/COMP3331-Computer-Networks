@@ -341,32 +341,35 @@ public class STPSender {
      * seperated by multi-threading where we perform both simultaneous to replicate sliding window. since each packet
      * placed in the window will be guaranteed to be sent before removal, we will simply count number of packets put in
      * the window. if we have put the filepackets size worth of packets in the window, we will return since that means
-     * all packets will have sent
+     * all packets will have sent. once the window is empty, and all packets were put int he window we will begin termination
      */
     private void sendData() {
         //initialising the count
         count = filePackets.size() + 1;
-        //start a new thread for sending packets in the window
+        //start a new thread for sending packets in the window THIS IS THE SENDING THREAD
         new Thread(new Runnable() {
             @Override
             public void run() {
-                //
+                //start an infinite loop which we will break on our exit condition
                 while (true) {
-                    try {
-                        System.out.println(window.size() + " ---- " + calculateRTTWithNoChange() + " ---- " + socket.getSoTimeout());
-                    } catch (SocketException e) {
-                        e.printStackTrace();
-                    }
+                    //exit condition, when window is empty and all packets sent
                     if ((count <= 1 && window.size() == 0)) {
                         break;
                     }
+                    //since multi-threading is used and windowIndex is a shared variable, we want to make sure
+                    //we do not proccess past last packet
                     if (windowIndex >= filePackets.size()) {
                         continue;
                     }
-                    //if there is room inside our window we will transmit a window size from current index (based off last ACK)
+                    //if there is room inside our window we will transmit packets based on current index
+                    //each time a packet is put in window it will be guaranteed to be sent, so we want to point to the
+                    //next packet to send once one is put in
                     if (window.remainingCapacity() > 0) {
+                        //if we have re-ordering we want to check if we passed the max-reorder size
                         if (reOrder && windowIndex == windowreOrder) {
+                            //if so we want to send our packet we held onto
                             sendPacket(reOrderPacket);
+                            //turn the flag on that re-ordering is no longer on to allow for more re-ordering
                             reOrder = false;
                         }
                         packet = new STPPacket(filePackets.get(windowIndex));
