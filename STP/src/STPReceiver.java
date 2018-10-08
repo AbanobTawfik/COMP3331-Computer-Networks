@@ -2,6 +2,9 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * The type Stp receiver.
+ */
 public class STPReceiver {
     private STPTimer timer = new STPTimer();
     private InetAddress IP;
@@ -31,6 +34,11 @@ public class STPReceiver {
     private int lastPayloadSize;
     private ReceiverLogs PLD = new ReceiverLogs();
 
+    /**
+     * Instantiates a new Stp receiver.
+     *
+     * @param args the args
+     */
     public STPReceiver(String args[]) {
         this.portNumber = Integer.parseInt(args[0]);
         this.fileRequested = args[1];
@@ -75,6 +83,9 @@ public class STPReceiver {
         }
     }
 
+    /**
+     * Operate.
+     */
     public void operate() {
         timer.run();
         handshake();
@@ -84,6 +95,9 @@ public class STPReceiver {
         System.exit(0);
     }
 
+    /**
+     *
+     */
     private void handshake() {
         while (!SYN) {
             try {
@@ -128,6 +142,9 @@ public class STPReceiver {
         System.out.println("handshake complete");
     }
 
+    /**
+     *
+     */
     private void receiveData() {
         while (true) {
             System.out.println("free heap size - " + Runtime.getRuntime().freeMemory());
@@ -218,6 +235,9 @@ public class STPReceiver {
         }
     }
 
+    /**
+     *
+     */
     private void terminate() {
         //4 way handshake closure, since the server will initiate the close
         //first send back the FINACK for the servers FIN
@@ -254,6 +274,12 @@ public class STPReceiver {
         writeFile();
     }
 
+    /**
+     *
+     * @param payload
+     * @param length
+     * @return
+     */
     private int checksum(byte[] payload, int length) {
         int sum = 0;
         for (int i = 0; i < length; i++) {
@@ -263,10 +289,20 @@ public class STPReceiver {
         return sum;
     }
 
+    /**
+     *
+     * @param r
+     * @param length
+     * @return
+     */
     private boolean validCheckSum(ReadablePacket r, int length) {
         return r.getChecksum() == checksum(r.getPayload(), length);
     }
 
+    /**
+     *
+     * @param p
+     */
     private void sendPacket(STPPacket p) {
         dataOut = p.getPacket();
         dataOut.setAddress(senderIP);
@@ -278,6 +314,9 @@ public class STPReceiver {
         }
     }
 
+    /**
+     *
+     */
     private void writeFile() {
         System.out.println("--- payload sizes ------");
         for(ReadablePacket r : payloads.getArrayList()){
@@ -302,12 +341,24 @@ public class STPReceiver {
         }
     }
 
+    /**
+     * Unpadded payload byte [ ].
+     *
+     * @param r    the r
+     * @param last the last
+     * @return the byte [ ]
+     */
     public byte[] unpaddedPayload(ReadablePacket r, boolean last) {
         if (last)
             return Arrays.copyOf(r.getPayload(), lastPayloadSize);
         return Arrays.copyOf(r.getPayload(), payloadSize);
     }
 
+    /**
+     * Minimized payload.
+     *
+     * @param r the r
+     */
     public void minimizedPayload(ReadablePacket r){
         byte[] set = new byte[payloadSize];
         for(int i = 0; i < payloadSize; i++){
@@ -316,6 +367,15 @@ public class STPReceiver {
         r.setPayload(set);
     }
 
+    /**
+     * Log write.
+     *
+     * @param length         the length
+     * @param sequenceNumber the sequence number
+     * @param ackNumber      the ack number
+     * @param sndOrReceive   the snd or receive
+     * @param status         the status
+     */
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
         float timePassed = timer.timePassed() / 1000;
         String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", sndOrReceive
@@ -329,6 +389,9 @@ public class STPReceiver {
 
     }
 
+    /**
+     * Finish log file.
+     */
     public void finishLogFile() {
         String s = "--------------------------------------------------------------------------\n";
         try {

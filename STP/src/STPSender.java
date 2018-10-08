@@ -4,12 +4,17 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
- * This class STPSender will implement a server side TCP sender over a UDP channel. reliability is implemented in the form
- * of acknowledgements from the receiver. the class guarantees that any packet once placed in the window will guaranteed to be
- * delivered to the receiver before being removed from the window. Initially the file is chunked into MSS packets and a packet
- * that contains remainder bytes from MSS. and is stored into a list. these packets are sent through a UDP socket, whilst at the same
- * time receiving acknowledgements from the  receiver through the use of multi-threading. since most transfers will occur over
- * a reliable channel, unreliability was also implemented as per specification through the use of a PLD module.
+ * This class STPSender will implement a server side TCP sender over a UDP channel.
+ * reliability is implemented in the form
+ * of acknowledgements from the receiver. the class guarantees that any packet once placed in the
+ * window will guaranteed to be
+ * delivered to the receiver before being removed from the window. Initially the file is chunked
+ * into MSS packets and a packet
+ * that contains remainder bytes from MSS. and is stored into a list.
+ * these packets are sent through a UDP socket, whilst at the same
+ * time receiving acknowledgements from the  receiver through the use of multi-threading.
+ * since most transfers will occur over a reliable channel,
+ * unreliability was also implemented as per specification through the use of a PLD module.
  */
 public class STPSender {
     //this will be the initial value from RTT (RTT = timercv - timesnd)
