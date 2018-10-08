@@ -13,6 +13,10 @@ public class Unreliability {
     private int packetsDelayed = 0;
     private int packetsCorrupted = 0;
     private int fastRetransmissions = 0;
+    private int PLDTransferredPackets = 0;
+    private int packetsTransferred = 0;
+    private int packetsTimedOut = 0;
+    private int duplicateACKS = 0;
 
     public Unreliability(float pDrop, float pDuplicate, float pCorrupt, float pOrder, int maxOrder, float pDelay, int maxDelay, long seed) {
         this.pDrop = pDrop;
@@ -82,6 +86,30 @@ public class Unreliability {
         return fastRetransmissions;
     }
 
+    public int getPLDTransferredPackets() {
+        return PLDTransferredPackets;
+    }
+
+    public int getPacketsTransferred() {
+        return packetsTransferred;
+    }
+
+    public int getPacketsTimedOut() {
+        return packetsTimedOut;
+    }
+
+    public int getDuplicateACKS() {
+        return duplicateACKS;
+    }
+
+    public void addPLDTransferred(){
+        PLDTransferredPackets++;
+    }
+
+    public void addPacketsTransferred(){
+        packetsTransferred++;
+    }
+
     public void addPacketDropped() {
         packetsDropped++;
     }
@@ -104,5 +132,13 @@ public class Unreliability {
 
     public void addFastRetransmissions() {
         fastRetransmissions++;
+    }
+
+    public void addPacketsTimedOut(){
+        packetsTimedOut++;
+    }
+
+    public void addDuplicateACKS(){
+        duplicateACKS++;
     }
 }
