@@ -70,7 +70,6 @@ public class STPReceiver {
      * arguments passed through from the user, and will create a receiver (client)
      * that will match the behaviour passed in through user input
      *
-     *
      * @param args program arguements passed through
      */
     public STPReceiver(String args[]) {
@@ -234,33 +233,52 @@ public class STPReceiver {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //create a readable version of the packet from the packet received
             r = new ReadablePacket(dataIn);
+            //if we havent received a packet before
             if (!firstDataSizeFlag) {
+                //we want to set our payload size (MSS) as the length of the packet - 32 bits from header
                 payloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+                //initialise our lastPayloadSize incase the file evenly divided by MSS bytes
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+                //set flag to true so this is never called again
                 firstDataSizeFlag = true;
+                //now we want to remove the padding 1000000 bytes from the payload by resizing the byte array
                 r.setPayload(unpaddedPayload(r, false));
             }
-            if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER != payloadSize)) {
+            //if the size of the packet is different to our MSS and its larger than 0, this indicates last packet
+            if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 &&
+                    (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER != payloadSize)) {
+                //so we want to set the last packet size to the unqiue size in the last packet
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
+                //if the last packet has a faulty checksum we send a NAK
                 if (!validCheckSum(r, lastPayloadSize)) {
-                    ACK = false;
-                } else {
-                    ACK = true;
-                }
-            } else {
-                if (!validCheckSum(r, payloadSize) && r.getChecksum() != 0) {
                     PLD.addCorruptDataSegments();
                     ACK = false;
                 } else {
+                    //otherwise we send back an ACK
                     ACK = true;
                 }
             }
+            //otherwise we will use MSS to check for checksum (since we scan through 0-input bytes)
+            else {
+                //if the checksum is not equivalent and its not 0 (empty)
+                if (!validCheckSum(r, payloadSize) && r.getChecksum() != 0) {
+                    //add 1 to corrupted packets and return a NAK
+                    PLD.addCorruptDataSegments();
+                    ACK = false;
+                } else {
+                    //otherwise send back an ack
+                    ACK = true;
+                }
+            }
+            //now we want to reduce any padding the payload could have in the packet before we store it
             minimizedPayload(r);
-            //extract payload
-            //drop packet if corrupted data
+            //if the packet received already exists (duplicate)
             if (payloads.contains(r)) {
+                //we want to add 1 to our duplicate segments received
                 PLD.addDuplicateSegments();
+                //create our ACK response however we log down that it is a duplicate ACK
                 header = new STPPacketHeader(0, sequenceNumber, r.getSequenceNumber(), IP,
                         r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
                 packet = new STPPacket(this.header, new byte[0]);
@@ -268,42 +286,67 @@ public class STPReceiver {
                 logWrite(0, sequenceNumber, ackNumber, "snd/DA", "A");
                 continue;
             }
+            //if we have an ACK and the sequence number jumps past MSS
+            //we want to add the packet to the buffer for out of order packets
             if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize)) {
                 buffer.add(r);
-            } else {
+            }
+            //otherwise we want to add the packet to the list of packets for writing
+            else {
                 if (ACK) {
                     payloads.add(r);
                 }
             }
+            //if the ack number is equivalent to the last ack in the list of packets for writing
+            //add 1 to the number of duplicate acks
             if (ackNumber == payloads.last())
                 PLD.addDupACKS();
+            //set the ack number to be the last sequence number inside the list of packets
             ackNumber = payloads.last();
-            if (!ACK)
-                logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv/corr", "D");
+            //if we have a NAK
+            if (!ACK) {
+                //we want to write received a corruption
+                logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,
+                        r.getSequenceNumber() - (payloadSize - lastPayloadSize),
+                        r.getAcknowledgemntNumber(), "rcv/corr", "D");
+            }
+            //otherwise we want to write rcv succesfful
             else {
+                //if we receive an empty payload which indicates FIN, we want to write a FIN to the log file
                 if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER == 0) {
-                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "F");
-                } else {
-                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "D");
+                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,
+                            r.getSequenceNumber() - (payloadSize - lastPayloadSize),
+                            r.getAcknowledgemntNumber(), "rcv", "F");
+                }
+                //otherwise we will write acknowledge data
+                else {
+                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,
+                            r.getSequenceNumber() - (payloadSize - lastPayloadSize),
+                            r.getAcknowledgemntNumber(), "rcv", "D");
                 }
             }
-
+            //now since our payloads are stored in an ordered set, we can add them from the buffer into
+            //the list without effecting the ordering of the packets (inserted in order)
             for (ReadablePacket r : buffer.getBuffer()) {
                 payloads.add(r);
-                //buffer.remove(r);
             }
+            //if we have received a FIN
             if (r.isFIN()) {
+                //we want to add 1 to segments received
                 PLD.addSegmentsReceived();
+                //add whatever might be left in the buffer just incase
                 for (ReadablePacket r : buffer.getBuffer()) {
                     payloads.add(r);
                     //buffer.remove(r);
                 }
+                //return from the procedure (this is our break from the loop)
                 return;
             }
+            //otherwise, remove any duplicates from the buffer that already exist
             buffer.removeDuplicates(payloads);
+            //more status information of number of packets successfully received
             System.out.println("number of  packets - " + payloads.size());
-            //buffer.removeDuplicates(payloads);
-
+            //now we want to create our header with either our ACK/NAK
             header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                     r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
             packet = new STPPacket(this.header, new byte[0]);
