@@ -50,91 +50,113 @@ public class PacketSet {
     }
 
     /**
-     * Get readable packet.
+     * this method will return the packet from the index we are requesting
      *
-     * @param index the index
-     * @return the readable packet
+     * @param index the index of the packet we are retrieving
+     * @return the packet we requested
      */
     public ReadablePacket get(int index) {
+        //if the index is less than 0 or the index is greater than current limit
+        //return null
         if (index < 0 || index >= set.size())
             return null;
+        //otherwise we want to return the packet from that index
         return set.get(index);
     }
 
     /**
-     * Last int.
+     * This method will return the last sequence number inside the set
+     * it will go to the last index and return that sequence number
      *
-     * @return the int
+     * @return the last sequence number of the packet in the set
      */
     public int last() {
+        //if the set has no packets, return 0
         if (set.size() == 0)
             return 0;
+        //if the set has only 1 packet, we want to return the sequence number of the first packet
         if (set.size() == 1)
             return set.get(0).getSequenceNumber();
+        //otherwise return the last index's sequence number
         return set.get(set.size() - 1).getSequenceNumber();
     }
 
     /**
-     * Get readable packet.
+     * this method will look for and return a packet from the list
      *
-     * @param r the r
-     * @return the readable packet
+     * @param r the packet we are searching for
+     * @return the packet we are searching for inside the SET
      */
     public ReadablePacket get(ReadablePacket r) {
+        //if the packet doesn't exist within the set, return null
         if (!set.contains(r))
             return null;
+        //if the packet has index -1 means its not in the set, return null
         if (set.indexOf(r) == -1)
             return null;
+        //otherwise return the packet at the index of the object in the set
         return set.get(set.indexOf(r));
     }
 
     /**
-     * Size int.
+     * This method will return the size of the current set
      *
-     * @return the int
+     * @return the size of the current set
      */
     public int size() {
+        //return the size of the current set
         return set.size();
     }
 
     /**
-     * Index of int.
+     * This method will return the index of a packet inside the set
      *
-     * @param r the r
-     * @return the int
+     * @param r the packet we want the index of
+     * @return the index of the packet
      */
     public int indexOf(ReadablePacket r) {
+        //return the index of the packet we are looking for
         return set.indexOf(r);
     }
 
 
     /**
-     * Get array list array list.
+     * This method will return the arraylist which is also a set due to conditions and methods placed
      *
-     * @return the array list
+     * @return the array list version of our set that allows traversal
      */
     public ArrayList<ReadablePacket> getArrayList() {
+        //return our set
         return set;
     }
 
     /**
-     * Contains boolean.
+     * This method will return a boolean which checks if the packet exists within the set
      *
-     * @param r the r
-     * @return the boolean
+     * @param r the packet we are checking existence of
+     * @return true if the packet exists in the set, false otherwise
      */
     public boolean contains(ReadablePacket r) {
+        //scan through the current set and we are comparing based on sequence number
         for (ReadablePacket r1 : set) {
-            if (r1.getSequenceNumber() == r.getSequenceNumber())
+            //if the sequence number of the packet matches the one in the array
+            if (r1.getSequenceNumber() == r.getSequenceNumber()) {
+                //return true
                 return true;
+            }
         }
+        //otherwise return false
         return false;
     }
 
     /**
-     * Sort set.
+     * This method will sort the set when called based on our comparator
+     * it will sort the set in ascending order of sequence number to maintain
+     * correct order of packets
      */
     public void sortSet() {
+        //we are sorting based on our new custom comparator that compares sequence numbers, and
+        //will sort in ASCENDING order
         set.sort(new Comparator<ReadablePacket>() {
 
             @Override
