@@ -218,6 +218,7 @@ public class STPReceiver {
      * one responsibility.
      */
     private void receiveData() {
+        sequenceNumber = 1;
         //create an infinite loop that breaks on condition
         while (true) {
             //if there are packets within the payload set

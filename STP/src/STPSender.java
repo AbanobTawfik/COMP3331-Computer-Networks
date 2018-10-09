@@ -506,7 +506,7 @@ public class STPSender {
                                     //send the packet through the PLD module for re-transmit
                                     PLDSend(packet);
                                     //we want to print to log file a re-transmit and break from the loop
-                                    logWrite(MSS, read.getSequenceNumber(), read.getAcknowledgemntNumber(),
+                                    logWrite(MSS, read.getSequenceNumber(), r.getAcknowledgemntNumber(),
                                             "snd/RXT", "D", calculateRTTWithNoChange());
                                     break;
                                 }
@@ -529,7 +529,7 @@ public class STPSender {
                         //send the packet through the PLD module
                         PLDSend(packet);
                         //write the retransmit to the log file
-                        logWrite(MSS, retransmit.getSequenceNumber(), retransmit.getAcknowledgemntNumber(),
+                        logWrite(MSS, retransmit.getSequenceNumber(), 1,
                                 "snd/RXT", "D", calculateRTTWithNoChange());
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -588,7 +588,7 @@ public class STPSender {
                 FIN = true;
                 DUP = false;
                 ACK = false;
-                header = new STPPacketHeader(0, sequenceNumber, 0, IP,
+                header = new STPPacketHeader(0, sequenceNumber, 1, IP,
                         receiverIP, portNumber, receiverPort, SYN, ACK, FIN, DUP);
                 packet = new STPPacket(header, new byte[0]);
                 sendPacket(packet);
@@ -735,7 +735,7 @@ public class STPSender {
             //we want some output from the sender to see feedback and activity
             System.out.println("Drop - " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the drop to the lof file
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "drop", "D",
+            logWrite(size, read.getSequenceNumber(), 1, "drop", "D",
                     calculateRTTWithNoChange());
             //add 1 to the number of packets dropped and return without sending (simulating packet drop)
             PLD.addPacketDropped();
@@ -748,7 +748,7 @@ public class STPSender {
             //we want some output from the sender to see feedback and activity
             System.out.println("Duplicate " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the duplicate to the log file
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dup", "D",
+            logWrite(size, read.getSequenceNumber(), 1, "snd/dup", "D",
                     calculateRTTWithNoChange());
             //add 1 to the number of packets transferred aswell since we are transmitting another packet
             PLD.addPLDTransferred();
@@ -764,7 +764,7 @@ public class STPSender {
             //we want some output from the sender to see feedback and activity
             System.out.println("corrupt " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the corruption to the log file
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr",
+            logWrite(size, read.getSequenceNumber(), 1, "snd/corr",
                     "D", calculateRTTWithNoChange());
             //now we want to create a new payload to send that is corrupted by fliyying a bit
             byte[] copy = new byte[p.getPayload().length];
@@ -786,7 +786,7 @@ public class STPSender {
             //we want some output from the sender to see feedback and activity
             System.out.println("reorder " + count + " window index " + windowIndex + " window size - " + window.size());
             //output the re-ordering to our log file
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/rord",
+            logWrite(size, read.getSequenceNumber(), 1, "snd/rord",
                     "D", calculateRTTWithNoChange());
             //say we have a packet being re-ordered so we cannot re-order till our re-ordered packet is delivered
             reOrder = true;
@@ -804,7 +804,7 @@ public class STPSender {
             //we want some output from the sender to see feedback and activity
             System.out.println("delay " + count + " window index " + windowIndex + " window size - " + window.size());
             //write to the log file our delay
-            logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dely",
+            logWrite(size, read.getSequenceNumber(), 1, "snd/dely",
                     "D", calculateRTTWithNoChange());
             try {
                 //wait for a time between 0-max delay before we resume sending
@@ -823,7 +823,7 @@ public class STPSender {
         try {
             socket.send(dataOut);
             //write to the log file we have sent a packet
-            logWrite(size, read.getSequenceNumber(), ackNumber, "snd", "D", calculateRTTWithNoChange());
+            logWrite(size, read.getSequenceNumber(), 1, "snd", "D", calculateRTTWithNoChange());
         } catch (IOException e) {
             e.printStackTrace();
         }
