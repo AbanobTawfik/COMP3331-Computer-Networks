@@ -733,7 +733,7 @@ public class STPSender {
         //if we have a case of drop
         if (rand.nextDouble() < PLD.getpDrop()) {
             //we want some output from the sender to see feedback and activity
-            System.out.println("Drop - " + count + "window index" + windowIndex + "window size - " + window.size());
+            System.out.println("Drop - " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the drop to the lof file
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "drop", "D",
                     calculateRTTWithNoChange());
@@ -746,7 +746,7 @@ public class STPSender {
             //we want to add 1 to number of packets duplicated
             PLD.addPacketDuplicated();
             //we want some output from the sender to see feedback and activity
-            System.out.println("Duplicate " + count + "window index" + windowIndex + "window size - " + window.size());
+            System.out.println("Duplicate " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the duplicate to the log file
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dup", "D",
                     calculateRTTWithNoChange());
@@ -762,7 +762,7 @@ public class STPSender {
             //add 1 to the number of packets corrupted
             PLD.addPacketCorrupted();
             //we want some output from the sender to see feedback and activity
-            System.out.println("corrupt " + count + "window index" + windowIndex + "window size - " + window.size());
+            System.out.println("corrupt " + count + " window index " + windowIndex + " window size - " + window.size());
             //write the corruption to the log file
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/corr",
                     "D", calculateRTTWithNoChange());
@@ -784,7 +784,7 @@ public class STPSender {
             //we want to add 1 to number of packets re-ordered
             PLD.addPacketReOrdered();
             //we want some output from the sender to see feedback and activity
-            System.out.println("reorder " + count + "window index" + windowIndex + "window size - " + window.size());
+            System.out.println("reorder " + count + " window index " + windowIndex + " window size - " + window.size());
             //output the re-ordering to our log file
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/rord",
                     "D", calculateRTTWithNoChange());
@@ -802,7 +802,7 @@ public class STPSender {
             //add 1 to the numebr of delayed packets
             PLD.addPacketDelayed();
             //we want some output from the sender to see feedback and activity
-            System.out.println("delay " + count + "window index" + windowIndex + "window size - " + window.size());
+            System.out.println("delay " + count + " window index " + windowIndex + " window size - " + window.size());
             //write to the log file our delay
             logWrite(size, read.getSequenceNumber(), read.getAcknowledgemntNumber(), "snd/dely",
                     "D", calculateRTTWithNoChange());

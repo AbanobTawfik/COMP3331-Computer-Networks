@@ -346,85 +346,119 @@ public class STPReceiver {
             buffer.removeDuplicates(payloads);
             //more status information of number of packets successfully received
             System.out.println("number of  packets - " + payloads.size());
-            //now we want to create our header with either our ACK/NAK
+            //now we want to create our header with either our ACK/NAK and send the acknowledgement
+            //to the sender
             header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                     r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
             packet = new STPPacket(this.header, new byte[0]);
             sendPacket(packet);
+            //write to the log file that we are sending  with out ack/nak
             logWrite(0, sequenceNumber, ackNumber, "snd", "A");
         }
     }
 
     /**
-     *
+     * This method will simulate the TCP 4 way closure, upon receiving the FIN during the receiveData procedure
+     * we will then send back an ACK to acknowledge the close of the sender, afterwards we will send a FIN to the
+     * sender, and then wait in a while true loop for an ACK for our FIN. upon receiving our ACK we will then terminate
+     * the connection and the sender side will already have terminated.
      */
     private void terminate() {
-        //4 way handshake closure, since the server will initiate the close
-        //first send back the FINACK for the servers FIN
+        //4 way handshake closure, since the senders will initiate the close
+        //first send back the ACK for the senders FIN
         DUP = false;
         FIN = true;
         ACK = true;
-        //last packet to send back fin will be R since the while loop terminates
+        //now we want to create our ACK for the FIN to send to the sender
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
         sendPacket(packet);
-        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, "snd", "A");
+        //write to the log file that we transmitted to the sender
+        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1,
+                "snd", "A");
         //now we want to send back our FIN to initiate our side of the closure
         ACK = false;
+        //create our FIN packet with an empty payload
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(this.header, new byte[0]);
+        //send the FIN to the sender
         sendPacket(packet);
-        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, "snd", "F");
-        //now we want to wait for our ack from the server
+        //write to the log file that we sent our FIN
+        logWrite(0, sequenceNumber, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1,
+                "snd", "F");
+        //now we want to wait for our ack from the sender
         while (true) {
             try {
+                //try receiving a response from the sender
                 socket.receive(dataIn);
+                //add 1 to segments received
                 PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //when we receive a packet we will want to convert it to be in readable form
             r = new ReadablePacket(dataIn);
-            if (r.isACK() && r.isFIN())
-                logWrite(0, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1, ++sequenceNumber, "rcv", "A");
-            break;
+            //if the packet is an ACK and still FIN we want to terminate conncection
+            //note sender side connection is already terminated at this point
+            if (r.isACK() && r.isFIN()) {
+                logWrite(0, r.getSequenceNumber() - (payloadSize - lastPayloadSize) + 1,
+                        ++sequenceNumber, "rcv", "A");
+                //break from the loop once we receive our ack
+                break;
+            }
         }
+        //upon completion of our termination close the socket
         socket.close();
+        //and write to the log file the statistics of the receiver
         writeFile();
     }
 
     /**
-     * @param payload
-     * @param length
-     * @return
+     * This method will compute the checksum of the payload in the datagram, it will first sum all the bytes together
+     * and then return the one's complement of that sum
+     *
+     * @param payload the payload received from the sender
+     * @param length  the length of the payload to avoid padding issues with the datagram
+     * @return the checksum value from the computation
      */
     private int checksum(byte[] payload, int length) {
+        //start a running sum
         int sum = 0;
+        //for each byte in the payload
         for (int i = 0; i < length; i++) {
+            //add to the sum the current value of the byte
             sum += (int) payload[i];
         }
+        //return the one's complement of the calculation
         sum = ~sum;
         return sum;
     }
 
     /**
-     * @param r
-     * @param length
-     * @return
+     * @param r      the packet we are validating our checksum for
+     * @param length the length of the packet in bytes
+     * @return true if the packet checksum matches the header checksum, false if not
      */
     private boolean validCheckSum(ReadablePacket r, int length) {
+        //return the boolean that the checksum in the header, is equal to the payload checksum
         return r.getChecksum() == checksum(r.getPayload(), length);
     }
 
     /**
-     * @param p
+     * This method will send a datagram packet to the sender with 0 loss
+     *
+     * @param p the packet we are sending to the sender
      */
     private void sendPacket(STPPacket p) {
+        //set our data to be the data in the packet
         dataOut = p.getPacket();
+        //set the destination address to the sender
         dataOut.setAddress(senderIP);
         dataOut.setPort(senderPort);
         try {
+            //send the datagram to the sender
             socket.send(dataOut);
         } catch (IOException e) {
             e.printStackTrace();
@@ -432,26 +466,35 @@ public class STPReceiver {
     }
 
     /**
-     *
+     * this method will write all the gathered payloads into our file output stream. before we write we want
+     * to perform a saftey sort, to sort all packets by sequence number. after we want to remove the final FIN
+     * packet we received from the receivedata method which will always be the last packet in the set. finally
+     * we want to write all the data in the payloads into the fileoutpuststream
      */
     private void writeFile() {
+        //saftey sort incase somehow we have any out of order packets
+        payloads.sortSet();
+        //more status output so it doesnt just look frozen
         System.out.println("--- payload sizes ------");
-        for (ReadablePacket r : payloads.getArrayList()) {
-            System.out.println(r.getPayload().length);
-        }
-        System.out.println(payloads.size());
+        System.out.println(" ==> " + payloads.size() + " <== ");
         System.out.println("-------");
+        //if there is more than 1 payload, we want to remove the final FIN 0 payload packet
         if (payloads.size() > 1)
             payloads.remove(payloads.get(payloads.size() - 1));
+        //now we want to write each packet in the payload array to the file output stream
         try {
+            //for each packet in the payload list
             for (ReadablePacket r : payloads.getArrayList()) {
+                //write the byte payload to the output stream
                 pdfFile.write(unpaddedPayload(r, r.equals(payloads.get(payloads.size() - 1))));
+                //flush to allow for further writing
                 pdfFile.flush();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
         try {
+            //finally close the PDF file
             pdfFile.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -459,28 +502,36 @@ public class STPReceiver {
     }
 
     /**
-     * Unpadded payload byte [ ].
+     * This method will write the length of the payload removing the extra padding from the datagram packet
+     * this will make sure we only write data from the payload and nothing else to the file output stream
      *
-     * @param r    the r
-     * @param last the last
-     * @return the byte [ ]
+     * @param r    the packet that has the payload we are writing
+     * @param last if this is the last packet or not
+     * @return the byte array that contains only payload data
      */
     public byte[] unpaddedPayload(ReadablePacket r, boolean last) {
-        if (last)
+        //if its the last packet
+        if (last) {
+            //return a copy of the array from 0 -> index last payload size
             return Arrays.copyOf(r.getPayload(), lastPayloadSize);
+        }
+        //otherwise return a coupy of the array from 0 -> MSS
         return Arrays.copyOf(r.getPayload(), payloadSize);
     }
 
     /**
-     * Minimized payload.
+     * this method will remove extra padding bytes from the datagram packet itself leaving only the payload
      *
-     * @param r the r
+     * @param r the packet we are removing the padding from the payload from
      */
     public void minimizedPayload(ReadablePacket r) {
+        //we want to create a new byte array of size payload size
         byte[] set = new byte[payloadSize];
+        //for each byte from 0 -> payload create a copy in our new set byte array
         for (int i = 0; i < payloadSize; i++) {
             set[i] = r.getPayload()[i];
         }
+        //set the payload for the packet to be our set byte array
         r.setPayload(set);
     }
 
