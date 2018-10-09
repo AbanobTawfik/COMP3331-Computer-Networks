@@ -936,11 +936,11 @@ public class STPSender {
             devRTT = tmpDevRTT;
             return 59999;
         }
-        if ((estimatedRTT + (int) this.gamma * devRTT) <= 0) {
+        if ((estimatedRTT + (int) this.gamma * devRTT) <= 20) {
             //reset estimated and devRTT and set sensible 50ms timeout
             estimatedRTT = 50;
             devRTT = 25;
-            return 10;
+            return 25;
         }
         //return estimatedRTT + gamma*devRTT
         return (estimatedRTT + (int) this.gamma * devRTT);
