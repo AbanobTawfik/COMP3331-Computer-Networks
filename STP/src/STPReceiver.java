@@ -536,20 +536,26 @@ public class STPReceiver {
     }
 
     /**
-     * Log write.
+     * this method will write to the log file based on the paramters passed through, it is used to
+     * print formatted data correctly to the log file.
      *
-     * @param length         the length
-     * @param sequenceNumber the sequence number
-     * @param ackNumber      the ack number
-     * @param sndOrReceive   the snd or receive
-     * @param status         the status
+     * @param length         the length of the payload we are sending/receiving
+     * @param sequenceNumber the sequence number of the packet we are sending/receiving
+     * @param ackNumber      the ack number of the packet we are sending/receiving
+     * @param sndOrReceive   the snd or receive to indicate if we are sending or receiving data
+     * @param status         the status if we are acknowledging or delivering data, or SYN/FIN
      */
     public void logWrite(int length, int sequenceNumber, int ackNumber, String sndOrReceive, String status) {
+        //first we want to get the time passed from the timer, in seconds by dividing the time passed by 1000
+        //since timepassed is in milliseconds
         float timePassed = timer.timePassed() / 1000;
+        //create our formatted string to seperate in spaced columns to print out all paramters passed through
         String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", sndOrReceive
                 , timePassed, status, sequenceNumber, length, ackNumber);
         try {
+            //write the formatted string to the log file
             logFile.write(s);
+            //flush to allow for further writing
             logFile.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -558,31 +564,40 @@ public class STPReceiver {
     }
 
     /**
-     * Finish log file.
+     * This method will print the statistics of the receiver side to the log file after successful termination
      */
     public void finishLogFile() {
+        //seperate to indicate statistic section
         String s = "--------------------------------------------------------------------------\n";
         try {
+            //write the seperator to the log file
             logFile.write(s);
             logFile.flush();
+            //print the amount of data received in bytes to the log file
             s = String.format("%-50s %-20s\n", "Amount of data received (bytes)", PLD.getBytesReceived());
             logFile.write(s);
             logFile.flush();
+            //print the amount of segments received to the log file
             s = String.format("%-50s %-20s\n", "Total Segments Received", PLD.getSegmentsReceived());
             logFile.write(s);
             logFile.flush();
+            //print the amount of data segments  received to the log file
             s = String.format("%-50s %-20s\n", "Data segments received", PLD.getDataSegmentsReceived());
             logFile.write(s);
             logFile.flush();
+            //print the amount of data segments with bit errors  received to the log file
             s = String.format("%-50s %-20s\n", "Data segments with Bit Errors", PLD.getCorruptDataSegments());
             logFile.write(s);
             logFile.flush();
+            //print the amount of duplicate data segments received to the log file
             s = String.format("%-50s %-20s\n", "Duplicate data segments received", PLD.getDuplicateSegments());
             logFile.write(s);
             logFile.flush();
+            //print the amount of duplicate ACKs sent to the log file
             s = String.format("%-50s %-20s\n", "Duplicate ACKs sent", PLD.getDupACKS());
             logFile.write(s);
             logFile.flush();
+            //print the final seperator to indicate end of file to the log file
             s = "--------------------------------------------------------------------------\n";
             logFile.write(s);
             logFile.flush();
