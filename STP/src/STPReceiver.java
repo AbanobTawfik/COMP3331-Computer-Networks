@@ -328,7 +328,7 @@ public class STPReceiver {
                 else {
                     logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,
                             r.getSequenceNumber() - (payloadSize - lastPayloadSize),
-                            r.getAcknowledgemntNumber(), "rcv", "D");
+                            sequenceNumber, "rcv", "D");
                 }
             }
             //now since our payloads are stored in an ordered set, we can add them from the buffer into
