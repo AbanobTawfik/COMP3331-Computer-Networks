@@ -3,72 +3,120 @@ import java.io.*;
 import java.util.*;
 
 /**
- * The type Stp receiver.
+ * This class STPReceiver will implement a client side TCP receiver over a UDP channel.
+ * The receiver is simple, it will first initiate the connection performing a 3-way handshake, it will
+ * sit in a loop waiting for for the first SYN packet. upon receiving a SYN packet it will send back
+ * a SYNACK. it will then wait for an ack to finish the handshake. after the connection is established the
+ * receiver begins to receive packets with payload data from the sender. first the receiver will check if the
+ * sequence number of the packet already exists in the list of successful payloads, if so it will just send back
+ * a duplicate ACK assuming the checksum is correct. the receiver will also perform the checksum calculation to verify
+ * if the header checksum matches the checksum of the payload for corruption.
+ * it will send back a NAK on data corruption. Packets will always maintain a state of order through the use
+ * of a set, which will not add duplicates and sort the list of packets in order of sequence number. a buffer is used
+ * to return accurate ACK cumulative numbers. out of order packets are stored in buffer, and the ack number returned
+ * is the last packet in the payload list. After receiving the FIN packet from the sender which will be sent on
+ * termination from sender, we begin the 4 way termination closure, we first send the ACK for the FIN, then we
+ * send our own FIN, and wait for an ACK back before closing the connection and finishing the program.
  */
 public class STPReceiver {
+    //this will be the timer counting time since the start of execution
     private STPTimer timer = new STPTimer();
+    //we will now create variables to hold connection addresses and ports for both ends
     private InetAddress IP;
     private InetAddress senderIP;
     private int senderPort;
     private int portNumber;
     private DatagramSocket socket;
+    //string for file we are requesting from sender
     private String fileRequested;
+    //the buffer to hold out of order packet
     private PacketBuffer buffer;
+    //the input and output stream of the socket
     private DatagramPacket dataIn = new DatagramPacket(new byte[1000024], 1000024);
     private DatagramPacket dataOut = new DatagramPacket(new byte[1000024], 1000024);
-    //set the initial sequence number to 2^31 - 1000000000 for lee-way, this will also have enough randomness
+    //set the initial sequence number to 0
     private int sequenceNumber = 0;
+    //create variable for holding the ack number
     private int ackNumber;
+    //generic packet to avoid re-initialising on each try catch block
     private STPPacketHeader header;
     private STPPacket packet;
     private ReadablePacket r;
+    //flags for receiver state
     private boolean SYN = false;
     private boolean ACK = false;
     private boolean FIN = false;
+    //ignore this 1 lol
     private boolean DUP = false;
+    //a set that uses array list, will order packets correctly based on sequence number, and
+    //will not add duplicates, see PacketSet.java
     private PacketSet payloads = new PacketSet();
+    //create an output stream for our pdf file requested (creates the file in this variable)
     private OutputStream pdfFile;
+    //this will hold the size of MSS payloads from sender
     private int payloadSize;
+    //log file for output
     private FileWriter logFile;
+    //flag to check if we received first piece of data
     private boolean firstDataSizeFlag = false;
+    //the size of the remainder payload from MSS on last packet
     private int lastPayloadSize;
+    //statistic tracking module for end of log file statistics
     private ReceiverLogs PLD = new ReceiverLogs();
 
     /**
-     * Instantiates a new Stp receiver.
+     * This method will be used to create an instance of the STPReceiver,
+     * it will pass in the variables from the program
+     * arguments passed through from the user, and will create a receiver (client)
+     * that will match the behaviour passed in through user input
      *
-     * @param args the args
+     *
+     * @param args program arguements passed through
      */
     public STPReceiver(String args[]) {
+        //parse the program arguements
         this.portNumber = Integer.parseInt(args[0]);
         this.fileRequested = args[1];
+        //create a new directory if it doesnt exist called created_files
+        //all created files will be stored into this directory
         File dir = new File("created_files");
         dir.mkdir();
+        //rename the file to take into account the file path in created_files
         this.fileRequested = dir.getAbsolutePath() + "/" + this.fileRequested;
+        //IP address will be the host address of the local machine, (cant use 127.0.0.1)
+        //since we cannot bind to that address
         try {
             this.IP = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress());
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        //creating a UDP socket with the ip and port designated
         try {
             this.socket = new DatagramSocket(this.portNumber, this.IP);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        this.buffer = new PacketBuffer(50);
+        //create a buffer that at max holds 10000 packets (will be unlikely to surpass this limit)
+        //since we have reliability
+        this.buffer = new PacketBuffer(10000);
+        //create our outputstream for the payloads to be the file in the new directory
         try {
             this.pdfFile = new FileOutputStream(this.fileRequested);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        //now we want to create a directory for the log files for each file requested to avoid
+        //losing previous log files
         try {
+            //create the directory for the file's log files
             dir = new File("log_files_" + args[1]);
-            if(!dir.exists());
-                dir.mkdir();
+            if (!dir.exists()) ;
+            dir.mkdir();
             this.logFile = new FileWriter(dir.getAbsoluteFile() + "/" + "Receiver Log.txt");
         } catch (IOException e) {
             e.printStackTrace();
         }
+        //now we want to do as done in sender, label each column of our log files
         try {
             String s = String.format("%-15s %-10s %-10s %-15s %-15s %-15s\n", "snd/rcv", "time",
                     "type", "sequence", "payload size", "ack");
@@ -84,7 +132,9 @@ public class STPReceiver {
     }
 
     /**
-     * Operate.
+     * this will be the function called to initiate the receiver. it will first
+     * call the handshake, then receive data, then terminate connection and finally
+     * output the statistics to the log files.
      */
     public void operate() {
         timer.run();
@@ -96,60 +146,88 @@ public class STPReceiver {
     }
 
     /**
-     *
+     * this method will perform a 3-way handshake with the Sender, this begins waiting in a while loop for the SYN
+     * packet from the sender, upon receiving the SYN packet we will instantly send back an SYN ACK. finally we
+     * will wait in a while loop for the acknowledgement for the SYNACK
      */
     private void handshake() {
+        //we will wait in a loop for the SYN packet
         while (!SYN) {
+            //receive data through socket
             try {
                 socket.receive(dataIn);
+                //add 1 to number of segments received
                 PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //create a new readable version of the packet to be able to convert binary packet to
+            //understandable values
             r = new ReadablePacket(dataIn);
+            //if we have received a SYN, we want to write the SYN to the log file and set SYNACK to be true
             if (r.isSYN()) {
                 logWrite(0, 0, 0, "rcv", "S");
                 SYN = true;
                 ACK = true;
             }
         }
+        //we want to bind our output to the receiving datagrams source ip + port
         this.senderIP = r.getSourceIP();
         this.senderPort = r.getSourcePort();
         dataOut.setAddress(r.getSourceIP());
         dataOut.setPort(r.getSourcePort());
-        //add 1 for SYN bit
+        //add 1 to the ack number since we ACK'd the syn bit
         ackNumber = 1;
+        //create our SYNACK response to send to the sender
         header = new STPPacketHeader(0, sequenceNumber, ackNumber, IP,
                 r.getSourceIP(), portNumber, r.getSourcePort(), SYN, ACK, FIN, DUP);
         packet = new STPPacket(header, new byte[0]);
         logWrite(0, sequenceNumber, ackNumber, "snd", "SA");
         sendPacket(packet);
-        //now we wait for the reply that our reply has been acknowledged
+        //now we wait for the reply that our SYNACK has been acknowledged
         while (true) {
             try {
+                //receive data from the sender
                 socket.receive(dataIn);
                 PLD.addSegmentsReceived();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //convert the packet into a readable form
             r = new ReadablePacket(dataIn);
+            //if we received an ACK for our SYNACK we want to exit
             if (r.isACK() && r.isSYN())
                 break;
         }
+        //add 1 to current sequence number since we sent the ACK
         sequenceNumber++;
+        //write the ack to the log file
         logWrite(0, sequenceNumber, ackNumber, "rcv", "A");
+        //output handshake final packet for debug purposes
         r.display();
         System.out.println("handshake complete");
     }
 
     /**
-     *
+     * This method will be a reliable receiver operation that receives datagram packets from the sender side;
+     * converts these datagrams into a readable form for analysing, and will send back a response. If a packet
+     * is discovered to be a duplicate, we will send back a duplicate acknowledgement. If the packet is
+     * out of order, we will store in the buffer, and only return the ack of the last packet in the final list
+     * of payloads. if the checksum of the packet does not match the one in the header, we will return a NAK
+     * indicating data corruption. upon receiving the FIN packet from the sender, which is sent on sender side's
+     * termination, we will exit and begin termination. this can be done simply on one thread as there is only
+     * one responsibility.
      */
     private void receiveData() {
+        //create an infinite loop that breaks on condition
         while (true) {
+            //we want output to show status of heap (so it doesnt look like the program is just crashed)
             System.out.println("free heap size - " + Runtime.getRuntime().freeMemory());
+            //attempt to receive a packet from the sender
             try {
                 socket.receive(dataIn);
+                //add 1 to the data segments, segments received and add number of bytes in the payload to the
+                //statistics
                 PLD.addBytesReceived(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER);
                 PLD.addSegmentsReceived();
                 PLD.addDataSegmentsReceived();
@@ -161,7 +239,7 @@ public class STPReceiver {
                 payloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
                 firstDataSizeFlag = true;
-                r.setPayload(unpaddedPayload(r,false));
+                r.setPayload(unpaddedPayload(r, false));
             }
             if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER > 0 && (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER != payloadSize)) {
                 lastPayloadSize = dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER;
@@ -192,20 +270,19 @@ public class STPReceiver {
             }
             if (ACK && r.getSequenceNumber() > (payloads.last() + payloadSize)) {
                 buffer.add(r);
-            }
-            else {
+            } else {
                 if (ACK) {
                     payloads.add(r);
                 }
             }
-            if(ackNumber == payloads.last())
+            if (ackNumber == payloads.last())
                 PLD.addDupACKS();
             ackNumber = payloads.last();
             if (!ACK)
                 logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv/corr", "D");
             else {
                 if (dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER == 0) {
-                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,  r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "F");
+                    logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "F");
                 } else {
                     logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER, r.getSequenceNumber() - (payloadSize - lastPayloadSize), r.getAcknowledgemntNumber(), "rcv", "D");
                 }
@@ -275,7 +352,6 @@ public class STPReceiver {
     }
 
     /**
-     *
      * @param payload
      * @param length
      * @return
@@ -290,7 +366,6 @@ public class STPReceiver {
     }
 
     /**
-     *
      * @param r
      * @param length
      * @return
@@ -300,7 +375,6 @@ public class STPReceiver {
     }
 
     /**
-     *
      * @param p
      */
     private void sendPacket(STPPacket p) {
@@ -319,7 +393,7 @@ public class STPReceiver {
      */
     private void writeFile() {
         System.out.println("--- payload sizes ------");
-        for(ReadablePacket r : payloads.getArrayList()){
+        for (ReadablePacket r : payloads.getArrayList()) {
             System.out.println(r.getPayload().length);
         }
         System.out.println(payloads.size());
@@ -359,9 +433,9 @@ public class STPReceiver {
      *
      * @param r the r
      */
-    public void minimizedPayload(ReadablePacket r){
+    public void minimizedPayload(ReadablePacket r) {
         byte[] set = new byte[payloadSize];
-        for(int i = 0; i < payloadSize; i++){
+        for (int i = 0; i < payloadSize; i++) {
             set[i] = r.getPayload()[i];
         }
         r.setPayload(set);
