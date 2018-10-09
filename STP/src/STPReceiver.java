@@ -314,7 +314,7 @@ public class STPReceiver {
                 //we want to write received a corruption
                 logWrite(dataIn.getLength() - HeaderValues.PAYLOAD_POSITION_IN_HEADER,
                         r.getSequenceNumber() - (payloadSize - lastPayloadSize),
-                        r.getAcknowledgemntNumber(), "rcv/corr", "D");
+                        sequenceNumber, "rcv/corr", "D");
             }
             //otherwise we want to write rcv succesfful
             else {
