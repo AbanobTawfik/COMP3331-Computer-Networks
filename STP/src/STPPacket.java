@@ -73,5 +73,3 @@ public class STPPacket {
         return ret;
     }
 }
-//debug code here!!!
-//        bp = header.getBp();
