@@ -220,6 +220,12 @@ public class STPReceiver {
     private void receiveData() {
         //create an infinite loop that breaks on condition
         while (true) {
+            //if there are packets within the payload set
+            if(payloads.size() > 5) {
+                //we want to start clearing junk memory since packet allocation
+                //using a huge amount of memory
+                System.gc();
+            }
             //we want output to show status of heap (so it doesnt look like the program is just crashed)
             System.out.println("free heap size - " + Runtime.getRuntime().freeMemory());
             //attempt to receive a packet from the sender
