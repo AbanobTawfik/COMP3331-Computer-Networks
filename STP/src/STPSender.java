@@ -506,7 +506,7 @@ public class STPSender {
                                     //send the packet through the PLD module for re-transmit
                                     PLDSend(packet);
                                     //we want to print to log file a re-transmit and break from the loop
-                                    logWrite(MSS, read.getSequenceNumber(), r.getAcknowledgemntNumber(),
+                                    logWrite(MSS, read.getSequenceNumber(), 1,
                                             "snd/RXT", "D", calculateRTTWithNoChange());
                                     break;
                                 }
